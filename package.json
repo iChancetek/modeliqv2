@@ -1,0 +1,10 @@
+{
+    "name": "modeliq-root",
+    "private": true,
+    "workspaces": [
+        "web"
+    ],
+    "scripts": {
+        "build": "cd web && npm install && npm run build"
+    }
+}

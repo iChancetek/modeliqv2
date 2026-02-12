@@ -1,3 +1,4 @@
+rootDirectory: web
 runConfig:
   concurrency: 80
   cpu: 1
