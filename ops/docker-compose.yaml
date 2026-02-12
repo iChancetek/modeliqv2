@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  # Next.js Frontend
+  web:
+    build: ../web
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../web:/app
+      - /app/node_modules
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+
+  # Python ML Engine
+  engine:
+    build: ../engine
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../engine:/app
+    environment:
+      - PORT=8000
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Mock Database (e.g. Postgres if needed later, or purely Firebase)
+  # For now, relying on external Firebase

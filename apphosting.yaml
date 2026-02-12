@@ -1,0 +1,15 @@
+runConfig:
+  concurrency: 80
+  cpu: 1
+  memory: 2Gi
+  minInstances: 0
+  maxInstances: 100
+
+env:
+  - variable: NEXT_PUBLIC_API_URL
+    value: https://modeliqv2--modeliqv2.us-east4.hosted.app
+
+build:
+  ignore:
+    - "**/.git"
+    - "**/node_modules"
