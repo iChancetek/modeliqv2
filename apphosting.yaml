@@ -3,7 +3,7 @@ runConfig:
   cpu: 1
   memory: 2Gi
   minInstances: 0
-  maxInstances: 100
+  maxInstances: 10
 
 env:
   - variable: NEXT_PUBLIC_API_URL
