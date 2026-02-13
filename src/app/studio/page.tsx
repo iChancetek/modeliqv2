@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import SmartUpload from '@/components/upload/SmartUpload';
 import InsightCard from '@/components/studio/InsightCard';
 import ExplorationView from '@/components/studio/ExplorationView';
-import { Cpu, BarChart3, Cloud, Shield, FileText } from 'lucide-react';
+import FloatingSidebar from '@/components/layout/FloatingSidebar'; // Import the new sidebar
+import { Cpu, BarChart3, Cloud, Shield, FileText, ArrowUpRight, Activity } from 'lucide-react';
 
 export default function StudioPage() {
     const [insights, setInsights] = useState<string[] | null>(null);
@@ -22,101 +23,117 @@ export default function StudioPage() {
     };
 
     return (
-        <div className="min-h-screen p-8 max-w-7xl mx-auto">
-            <header className="mb-12 flex justify-between items-center">
-                <div>
-                    <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
-                        ChanceTEK Studio
-                    </h1>
-                    <p className="text-gray-400 mt-2">Manage your datasets, models, and deployments.</p>
-                </div>
-                <div className="flex gap-4">
-                    <Link href="/notebooks">
-                        <Button variant="outline" className="border-blue-500/30 text-blue-400 hover:bg-blue-900/20">
-                            <FileText className="w-4 h-4 mr-2" /> Open Notebooks
-                        </Button>
-                    </Link>
-                </div>
-            </header>
+        <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
+            {/* Sidebar Integration */}
+            <FloatingSidebar />
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Main Upload Area */}
-                <div className="lg:col-span-2 space-y-8">
-                    <section className="glass-panel p-8">
-                        <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                            <Cloud className="text-blue-400" /> New Project
-                        </h2>
-                        <SmartUpload onAnalysisComplete={handleAnalysis} />
+            <div className="pl-4 md:pl-28 p-8 max-w-[1600px] mx-auto pt-24">
+                <header className="mb-10 flex justify-between items-end">
+                    <div>
+                        <h1 className="text-4xl font-bold tracking-tight mb-2">
+                            Welcome back, <span className="text-gradient">Chancellor</span>
+                        </h1>
+                        <p className="text-muted-foreground">Your AI command center is ready.</p>
+                    </div>
+                    <div className="flex gap-4">
+                        <Link href="/notebooks">
+                            <Button variant="outline" className="h-10 border-primary/30 text-primary hover:bg-primary/10">
+                                <FileText className="w-4 h-4 mr-2" /> Open Notebooks
+                            </Button>
+                        </Link>
+                    </div>
+                </header>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    {/* Main Workspace - 8 cols */}
+                    <div className="lg:col-span-8 space-y-6">
+                        {/* Upload Section */}
+                        <section className="glass-panel p-8 rounded-3xl relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
+                            <h2 className="text-xl font-bold mb-6 flex items-center gap-2 relative z-10">
+                                <Cloud className="text-primary" /> Start New Project
+                            </h2>
+                            <SmartUpload onAnalysisComplete={handleAnalysis} />
+                        </section>
 
                         {/* AI Insights Display */}
                         {insights && (
-                            <div className="mt-8 animate-in slide-in-from-bottom-5">
+                            <div className="animate-in slide-in-from-bottom-5">
                                 <InsightCard insights={insights} loading={false} />
                             </div>
                         )}
 
                         {/* Exploration View */}
                         {analysisData && (
-                            <div className="mt-8 pt-8 border-t border-white/10">
+                            <section className="glass-panel p-6 rounded-3xl border-t border-white/10">
                                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                                    <BarChart3 className="text-emerald-400" /> Interactive Exploration
+                                    <BarChart3 className="text-emerald-500" /> Interactive Exploration
                                 </h3>
                                 <ExplorationView
                                     filename={analysisData.filename}
                                     columns={analysisData.columns}
                                 />
-                            </div>
+                            </section>
                         )}
-                    </section>
+                    </div>
 
-                    <section className="grid md:grid-cols-2 gap-4">
-                        <Link href="/pipeline">
-                            <div className="glass-panel p-6 hover:bg-white/5 transition-colors cursor-pointer border-l-4 border-l-purple-500">
-                                <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
-                                    <Cpu className="text-purple-400" /> AutoML Pipeline
-                                </h3>
-                                <p className="text-sm text-gray-400">Train new models using our 9-step wizard.</p>
-                            </div>
-                        </Link>
-                        <Link href="/reports">
-                            <div className="glass-panel p-6 hover:bg-white/5 transition-colors cursor-pointer border-l-4 border-l-emerald-500">
-                                <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
-                                    <BarChart3 className="text-emerald-400" /> Model Reports
-                                </h3>
-                                <p className="text-sm text-gray-400">View performance metrics and visualizations.</p>
-                            </div>
-                        </Link>
-                        <Link href="/deploy">
-                            <div className="glass-panel p-6 hover:bg-white/5 transition-colors cursor-pointer border-l-4 border-l-orange-500">
-                                <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
-                                    <Shield className="text-orange-400" /> Deployments
-                                </h3>
-                                <p className="text-sm text-gray-400">Manage cloud endpoints and API keys.</p>
-                            </div>
-                        </Link>
-                    </section>
-                </div>
+                    {/* Right Panel / Activity - 4 cols */}
+                    <div className="lg:col-span-4 space-y-6">
+                        {/* Quick Actions Grid */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <Link href="/pipeline" className="col-span-2">
+                                <div className="glass-panel p-5 rounded-2xl hover:bg-accent/5 transition-colors cursor-pointer group border-l-4 border-l-purple-500">
+                                    <h3 className="font-bold mb-1 flex items-center gap-2">
+                                        <Cpu className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" /> AutoML Pipeline
+                                    </h3>
+                                    <p className="text-xs text-muted-foreground">Train new model wizard</p>
+                                </div>
+                            </Link>
+                            <Link href="/deploy">
+                                <div className="glass-panel p-5 rounded-2xl hover:bg-accent/5 transition-colors cursor-pointer border-l-4 border-l-orange-500">
+                                    <h3 className="font-bold mb-1 flex items-center gap-2">
+                                        <Shield className="w-4 h-4 text-orange-400" /> Deployments
+                                    </h3>
+                                    <p className="text-xs text-muted-foreground">Manage endpoints</p>
+                                </div>
+                            </Link>
+                            <Link href="/reports">
+                                <div className="glass-panel p-5 rounded-2xl hover:bg-accent/5 transition-colors cursor-pointer border-l-4 border-l-emerald-500">
+                                    <h3 className="font-bold mb-1 flex items-center gap-2">
+                                        <BarChart3 className="w-4 h-4 text-emerald-400" /> Metrics
+                                    </h3>
+                                    <p className="text-xs text-muted-foreground">View performance</p>
+                                </div>
+                            </Link>
+                        </div>
 
-                {/* Sidebar */}
-                <div className="space-y-6">
-                    <div className="glass-panel p-6">
-                        <h3 className="text-lg font-bold mb-4">Recent Activity</h3>
-                        <ul className="space-y-4 text-sm text-gray-400">
-                            <li className="flex items-start gap-3">
-                                <div className="w-2 h-2 mt-1.5 rounded-full bg-blue-500" />
-                                <div>
-                                    <p className="text-gray-300">Model "XGB_v2" training completed.</p>
-                                    <span className="text-xs text-gray-600">2 mins ago</span>
+                        {/* Recent Activity Feed */}
+                        <div className="glass-panel p-6 rounded-3xl h-full min-h-[300px]">
+                            <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                                <Activity className="w-4 h-4 text-primary" /> Live Activity
+                            </h3>
+                            <div className="space-y-6 relative">
+                                {/* Vertical Line */}
+                                <div className="absolute left-1.5 top-2 bottom-2 w-px bg-border" />
+
+                                {/* Items */}
+                                <div className="relative pl-6">
+                                    <div className="absolute left-0 top-1.5 w-3 h-3 rounded-full bg-blue-500 ring-4 ring-background" />
+                                    <p className="text-sm font-medium">Model "XGB_v2" training completed</p>
+                                    <span className="text-xs text-muted-foreground">2 minutes ago</span>
                                 </div>
-                            </li>
-                            <li className="flex items-start gap-3">
-                                <div className="w-2 h-2 mt-1.5 rounded-full bg-emerald-500" />
-                                <div>
-                                    <p className="text-gray-300">New dataset "titanic.csv" uploaded.</p>
-                                    <span className="text-xs text-gray-600">1 hour ago</span>
+                                <div className="relative pl-6">
+                                    <div className="absolute left-0 top-1.5 w-3 h-3 rounded-full bg-emerald-500 ring-4 ring-background" />
+                                    <p className="text-sm font-medium">New dataset "titanic.csv" uploaded</p>
+                                    <span className="text-xs text-muted-foreground">1 hour ago</span>
                                 </div>
-                            </li>
-                        </ul>
+                                <div className="relative pl-6 opacity-60">
+                                    <div className="absolute left-0 top-1.5 w-3 h-3 rounded-full bg-gray-500 ring-4 ring-background" />
+                                    <p className="text-sm font-medium">System maintenance scheduled</p>
+                                    <span className="text-xs text-muted-foreground">Yesterday</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
