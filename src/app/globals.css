@@ -8,178 +8,212 @@
     --background: 210 40% 98%;
     /* Soft white/gray background */
     --foreground: 222.2 84% 4.9%;
-    /* Deep gray text */
+    @import "tailwindcss";
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    @theme {
+      --font-sans: var(--font-inter);
+      --font-mono: var(--font-jetbrains-mono);
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+      --color-border: hsl(var(--border));
+      --color-input: hsl(var(--input));
+      --color-ring: hsl(var(--ring));
+      --color-background: hsl(var(--background));
+      --color-foreground: hsl(var(--foreground));
 
-    /* Vibrant Blue/Purple Accents */
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
+      --color-primary: hsl(var(--primary));
+      --color-primary-foreground: hsl(var(--primary-foreground));
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+      --color-secondary: hsl(var(--secondary));
+      --color-secondary-foreground: hsl(var(--secondary-foreground));
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+      --color-destructive: hsl(var(--destructive));
+      --color-destructive-foreground: hsl(var(--destructive-foreground));
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+      --color-muted: hsl(var(--muted));
+      --color-muted-foreground: hsl(var(--muted-foreground));
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+      --color-accent: hsl(var(--accent));
+      --color-accent-foreground: hsl(var(--accent-foreground));
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+      --color-popover: hsl(var(--popover));
+      --color-popover-foreground: hsl(var(--popover-foreground));
 
-    --radius: 0.75rem;
-    /* Slightly rounder for modern feel */
+      --color-card: hsl(var(--card));
+      --color-card-foreground: hsl(var(--card-foreground));
 
-    /* Chart / Data Vis Colors */
-    --chart-1: 221 83% 53%;
-    /* Blue */
-    --chart-2: 262 83% 58%;
-    /* Purple */
-    --chart-3: 162 72% 45%;
-    /* Emerald */
-    --chart-4: 31 92% 55%;
-    /* Orange */
-    --chart-5: 345 88% 63%;
-    /* Pink */
-  }
+      --animate-float: float 6s ease-in-out infinite;
+      --animate-glow: glow 2s ease-in-out infinite alternate;
 
-  .dark {
-    /* --- Dark Mode Variables (Cyberpunk/Futuristic) --- */
-    --background: 240 10% 4%;
-    /* Deepest Black-Blue (#0a0a0c) */
-    --foreground: 210 40% 98%;
-    /* Crisp White */
+      @keyframes float {
 
-    --card: 240 10% 6%;
-    --card-foreground: 210 40% 98%;
+        0%,
+        100% {
+          transform: translateY(0);
+        }
 
-    --popover: 240 10% 6%;
-    --popover-foreground: 210 40% 98%;
+        50% {
+          transform: translateY(-20px);
+        }
+      }
+    }
 
-    /* Neon Accents */
-    --primary: 217 91% 60%;
-    /* Electric Blue */
-    --primary-foreground: 222.2 47.4% 11.2%;
+    :root {
+      /* COSMIC DARK THEME (Default) */
+      --background: 260 50% 10%;
+      /* Deep Purple/Indigo Black */
+      --foreground: 0 0% 100%;
 
-    --secondary: 217 32% 17%;
-    /* Dark Blue-Gray */
-    --secondary-foreground: 210 40% 98%;
+      --card: 260 40% 15%;
+      --card-foreground: 0 0% 100%;
 
-    --muted: 217 32% 12%;
-    /* Very Dark muted */
-    --muted-foreground: 215 20% 65%;
+      --popover: 260 40% 15%;
+      --popover-foreground: 0 0% 100%;
 
-    --accent: 262 80% 50%;
-    /* Neon Purple */
-    --accent-foreground: 210 40% 98%;
+      --primary: 250 100% 75%;
+      /* Vibrant Light Purple */
+      --primary-foreground: 260 50% 10%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+      --secondary: 260 30% 20%;
+      --secondary-foreground: 0 0% 100%;
 
-    --border: 217 32% 12%;
-    /* Subtle borders */
-    --input: 217 32% 12%;
-    --ring: 224 76% 48%;
+      --muted: 260 30% 20%;
+      --muted-foreground: 260 20% 70%;
 
-    /* Neon Data Vis */
-    --chart-1: 217 91% 60%;
-    /* Electric Blue */
-    --chart-2: 270 95% 65%;
-    /* Neon Purple */
-    --chart-3: 160 85% 50%;
-    /* Neon Green */
-    --chart-4: 35 100% 60%;
-    /* Neon Orange */
-    --chart-5: 330 90% 65%;
-    /* Neon Pink */
-  }
-}
+      --accent: 180 100% 50%;
+      /* Cyan Neon */
+      --accent-foreground: 260 50% 10%;
 
-@layer base {
-  * {
-    border-color: hsl(var(--border));
-  }
+      --destructive: 0 62.8% 30.6%;
+      --destructive-foreground: 0 0% 98%;
 
-  body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
-    font-feature-settings: "rlig" 1, "calt" 1;
-    /* Better font rendering */
-  }
-}
+      --border: 260 30% 25%;
+      --input: 260 30% 25%;
+      --ring: 250 100% 75%;
 
-/* --- Futuristic Utilities --- */
+      --radius: 1rem;
+    }
 
-/* Glassmorphism - Light Mode */
-.glass-panel {
-  background-color: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
-}
+    .light {
+      /* CRISP LIGHT THEME (Optional/Secondary) */
+      --background: 0 0% 100%;
+      --foreground: 240 10% 3.9%;
 
-/* Glassmorphism - Dark Mode Override */
-.dark .glass-panel {
-  background-color: rgba(10, 10, 12, 0.6);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  /* Subtle white border */
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
-}
+      --card: 0 0% 100%;
+      --card-foreground: 240 10% 3.9%;
 
-/* Elite Button Glow */
-.glow-primary {
-  box-shadow: 0 0 15px hsl(var(--primary) / 0.5);
-}
+      --popover: 0 0% 100%;
+      --popover-foreground: 240 10% 3.9%;
 
-.glow-primary:hover {
-  box-shadow: 0 0 25px hsl(var(--primary) / 0.7);
-}
+      --primary: 260 80% 60%;
+      /* Deep Purple */
+      --primary-foreground: 0 0% 98%;
 
-.text-gradient {
-  background-clip: text;
-  color: transparent;
-  background-image: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
-}
+      --secondary: 240 4.8% 95.9%;
+      --secondary-foreground: 240 5.9% 10%;
 
-/* Floating Animation */
-@keyframes float {
-  0% {
-    transform: translateY(0px);
-  }
+      --muted: 240 4.8% 95.9%;
+      --muted-foreground: 240 3.8% 46.1%;
 
-  50% {
-    transform: translateY(-10px);
-  }
+      --accent: 260 30% 90%;
+      --accent-foreground: 240 5.9% 10%;
 
-  100% {
-    transform: translateY(0px);
-  }
-}
+      --destructive: 0 84.2% 60.2%;
+      --destructive-foreground: 0 0% 98%;
 
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
+      --border: 240 5.9% 90%;
+      --input: 240 5.9% 90%;
+      --ring: 260 80% 60%;
+    }
 
-/* Gradient Grid Background Utility */
-.bg-grid-white {
-  background-size: 40px 40px;
-  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-}
+    @layer base {
+      * {
+        border-color: hsl(var(--border));
+      }
 
-.dark .bg-grid-white {
-  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-}
+      body {
+        background-color: hsl(var(--background));
+        color: hsl(var(--foreground));
+        background-image: radial-gradient(circle at 50% 0%, hsl(260 60% 20%), transparent 70%);
+        background-attachment: fixed;
+      }
+    }
+
+    /* Cosmic Utilities */
+    .glass-panel {
+      background-color: hsl(var(--card) / 0.4);
+      backdrop-filter: blur(16px);
+      border-width: 1px;
+      border-color: hsl(var(--primary) / 0.2);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    .text-gradient {
+      background-clip: text;
+      color: transparent;
+      background-image: linear-gradient(to right, #c084fc, #22d3ee);
+      /* Purple to Cyan */
+    }
+
+    .glow-primary {
+      box-shadow: 0 0 20px hsl(var(--primary) / 0.4);
+    }
+
+    .btn-pill {
+      border-radius: 9999px;
+    }
+
+    /* Glassmorphism - Dark Mode Override */
+    .dark .glass-panel {
+      background-color: rgba(10, 10, 12, 0.6);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      /* Subtle white border */
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Elite Button Glow */
+    .glow-primary {
+      box-shadow: 0 0 15px hsl(var(--primary) / 0.5);
+    }
+
+    .glow-primary:hover {
+      box-shadow: 0 0 25px hsl(var(--primary) / 0.7);
+    }
+
+    .text-gradient {
+      background-clip: text;
+      color: transparent;
+      background-image: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    }
+
+    /* Floating Animation */
+    @keyframes float {
+      0% {
+        transform: translateY(0px);
+      }
+
+      50% {
+        transform: translateY(-10px);
+      }
+
+      100% {
+        transform: translateY(0px);
+      }
+    }
+
+    .animate-float {
+      animation: float 6s ease-in-out infinite;
+    }
+
+    /* Gradient Grid Background Utility */
+    .bg-grid-white {
+      background-size: 40px 40px;
+      background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    }
+
+    .dark .bg-grid-white {
+      background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    }
