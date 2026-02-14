@@ -35,14 +35,22 @@ export default function usePyodide() {
                 const pyodideInstance = await window.loadPyodide();
 
                 // Load critical packages & micropip
-                await pyodideInstance.loadPackage(['micropip', 'pandas', 'numpy', 'scikit-learn', 'matplotlib']);
+                await pyodideInstance.loadPackage(['micropip', 'pandas', 'numpy', 'scikit-learn', 'matplotlib', 'seaborn']);
 
-                // Set up visualizer shim
+                // Set up visualizer shim and Auto-Imports
                 pyodideInstance.runPython(`
                     import sys
                     import io
+                    import pandas as pd
+                    import numpy as np
+                    import matplotlib.pyplot as plt
+                    import seaborn as sns
+                    import sklearn
+                    
                     sys.stdout = io.StringIO()
                     sys.stderr = io.StringIO()
+                    
+                    print("Auto-imported: pandas as pd, numpy as np, matplotlib.pyplot as plt, seaborn as sns, sklearn")
                 `);
 
                 pyodideRef.current = pyodideInstance;
