@@ -40,7 +40,7 @@ export default function SmartUpload({ onAnalysisComplete }: SmartUploadProps) {
                     // Mock "Analysis" based on real data structure
                     const columns = results.meta.fields || [];
                     const rowCount = results.data.length;
-                    const preview = results.data.slice(0, 5);
+                    const preview = results.data.slice(0, 50);
 
                     const analysisResult = {
                         filename: selectedFile.name,
