@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import SmartUpload from '@/components/upload/SmartUpload';
 import InsightCard from '@/components/studio/InsightCard';
 import ExplorationView from '@/components/studio/ExplorationView';
@@ -12,6 +13,11 @@ import { Cpu, BarChart3, Cloud, Shield, FileText, ArrowUpRight, Activity, Upload
 export default function StudioPage() {
     const [insights, setInsights] = useState<string[] | null>(null);
     const [analysisData, setAnalysisData] = useState<any>(null);
+    const [config, setConfig] = useState({
+        name: 'Untitled Project',
+        target: '',
+        problemType: 'classification'
+    });
 
     const handleAnalysis = (data: any) => {
         setAnalysisData(data);
@@ -19,6 +25,26 @@ export default function StudioPage() {
             // Split by newline or bullet points
             const lines = data.insights.split('\n').filter((line: string) => line.trim().length > 0);
             setInsights(lines);
+        }
+
+        // Auto-Fill Configuration
+        if (data.columns && data.columns.length > 0) {
+            const potentialTarget = data.columns[data.columns.length - 1]; // Default to last column
+
+            // Simple heuristic for problem type
+            let type = 'classification';
+            // heuristic logic...
+            if (data.data) {
+                const uniqueValues = new Set(data.data.slice(0, 100).map((r: any) => r[potentialTarget])).size;
+                if (uniqueValues >= 20) type = 'regression';
+            }
+
+            setConfig(prev => ({
+                ...prev,
+                name: data.filename ? `${data.filename.split('.')[0]} Analysis` : prev.name,
+                target: potentialTarget,
+                problemType: type
+            }));
         }
     };
 
