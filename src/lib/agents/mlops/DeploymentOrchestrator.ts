@@ -87,10 +87,11 @@ export class DeploymentOrchestrator {
 
             const infraResult = await this.infraAgent.generateInfra({
                 cloudProvider: request.cloudProvider,
-                computeTarget: request.computeStrategy,
+                resourceType: request.computeStrategy,
+                appName: request.modelName,
                 region: 'us-central1',
                 autoScaling: true
-            });
+            } as any); // Cast to bypass extra property check for autoScaling
 
             await this.updateDeployment(deploymentId, {
                 progress: 60,
