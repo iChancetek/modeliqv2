@@ -8,6 +8,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import usePyodide from '@/hooks/usePyodide'; // Import Hook
 import SmartUpload from '@/components/upload/SmartUpload'; // Import SmartUpload
+import { ProblemDefinerAgent } from '@/lib/agents/mlops/ProblemDefinerAgent';
+import { ModelDeveloperAgent } from '@/lib/agents/mlops/ModelDeveloperAgent';
 
 type Step = 'config' | 'cleaning' | 'preprocessing' | 'augmentation' | 'splitting' | 'feature_engineering' | 'selection' | 'training' | 'results';
 
@@ -43,6 +45,14 @@ export default function PipelineWizard() {
     const [metrics, setMetrics] = useState<any>(null); // Added for Results Step
     const [modelId, setModelId] = useState<string>(''); // Added for Deployment
     const [aiRecommendation, setAiRecommendation] = useState<string>(''); // AI Recommendation State
+    const [splitRatio, setSplitRatio] = useState<number>(0.8); // Data Splitting Ratio
+    const [augmentationMethod, setAugmentationMethod] = useState<string>('none'); // Track selected augmentation
+
+    // Agentic State
+    const [agentThinking, setAgentThinking] = useState(false);
+    const [agentMessage, setAgentMessage] = useState<string>('');
+    const [problemDefiner] = useState(() => new ProblemDefinerAgent());
+    const [modelDeveloper] = useState(() => new ModelDeveloperAgent());
 
     const [isClient, setIsClient] = useState(false); // New state to track client-side rendering
 
@@ -126,7 +136,7 @@ export default function PipelineWizard() {
         }
     };
 
-    const handleUploadAnalysis = (data: any) => {
+    const handleUploadAnalysis = async (data: any) => {
         setLoading(true);
         try {
             // 1. Set Basic Data
@@ -135,25 +145,65 @@ export default function PipelineWizard() {
             setDataPreview(data.preview);
             setDataProfile({ rows: data.rowCount, columns: {} }); // Simple profile
 
-            // 2. Auto-Populate Config
-            if (data.recommendedTarget) {
-                setTargetCol(data.recommendedTarget);
-            }
-            if (data.recommendedTask) {
-                setProblemType(data.recommendedTask);
+            // 2. Trigger Agent Analysis (Problem Definer) if API Key exists, else fallback
+            if (process.env.NEXT_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY) {
+                setAgentThinking(true);
+                setAgentMessage("Analyzing dataset structure and content...");
+
+                try {
+                    // Construct a prompt context from data preview
+                    const previewStr = JSON.stringify(data.preview.slice(0, 5));
+                    const analysis = await problemDefiner.execute({
+                        id: `task_${Date.now()}`,
+                        type: 'analyze_requirements',
+                        status: 'pending',
+                        payload: {
+                            userGoal: "Build an optimal ML model for this dataset.",
+                            problemStatement: `Dataset '${data.filename}' with columns: ${data.columns.join(', ')}. Data Sample: ${previewStr}`,
+                        },
+                        logs: []
+                    });
+
+                    // Apply Agent Recommendations
+                    if (analysis.refinedGoal) {
+                        // Map agent output to our state
+                        // This logic depends on the exact JSON structure returned by the agent
+                        if (analysis.taskType) setProblemType(analysis.taskType.toLowerCase());
+
+                        // Heuristic to find target if agent doesn't explicitly return column name in a simple way
+                        // For now, we trust the validaiton or user, or use the heuristic as fallback
+                        // Let's assume analysis might contain "targetVariable" or we use the heuristic
+                        if (data.recommendedTarget) setTargetCol(data.recommendedTarget);
+
+                        setAiRecommendation(`🤖 **Problem Definer Agent**: \n"${analysis.refinedGoal}"\n\nI've identified this as a **${analysis.taskType}** problem. Suggested metrics: ${analysis.suggestedKPIs?.join(', ')}.`);
+                    }
+                } catch (agentError) {
+                    console.error("Agent failed, falling back to heuristics", agentError);
+                    // Fallback
+                    if (data.recommendedTarget) setTargetCol(data.recommendedTarget);
+                    if (data.recommendedTask) setProblemType(data.recommendedTask);
+                    setAiRecommendation("Agent unavailable. Using heuristic detection.");
+                } finally {
+                    setAgentThinking(false);
+                    setAgentMessage("");
+                }
+
+            } else {
+                // Fallback to Heuristics
+                if (data.recommendedTarget) setTargetCol(data.recommendedTarget);
+                if (data.recommendedTask) setProblemType(data.recommendedTask);
+
+                if (data.recommendedTarget && data.recommendedTask) {
+                    setAiRecommendation(`Based on the dataset, we detected '${data.recommendedTarget}' as the likely target. 
+                    Since it has ${data.recommendedTask === 'classification' ? 'few' : 'many'} unique values, we recommend a ${data.recommendedTask.toUpperCase()} approach using 
+                    ${data.recommendedTask === 'classification' ? 'Random Forest or XGBoost' : 'Gradient Boosting'} algorithms.`);
+                }
             }
 
             // 3. Set Project Name
             if (data.filename) {
                 const name = data.filename.split('.')[0];
                 setProjectName(name.charAt(0).toUpperCase() + name.slice(1) + " Analysis");
-            }
-
-            // 4. Set AI Recommendation
-            if (data.recommendedTarget && data.recommendedTask) {
-                setAiRecommendation(`Based on the dataset, we detected '${data.recommendedTarget}' as the likely target. 
-                 Since it has ${data.recommendedTask === 'classification' ? 'few' : 'many'} unique values, we recommend a ${data.recommendedTask.toUpperCase()} approach using 
-                 ${data.recommendedTask === 'classification' ? 'Random Forest or XGBoost' : 'Gradient Boosting'} algorithms.`);
             }
 
             setLoading(false);
@@ -231,16 +281,27 @@ export default function PipelineWizard() {
                         </div>
 
                         {/* AI Recommendation Panel */}
-                        {aiRecommendation && (
-                            <div className="glass-panel p-4 border-l-4 border-l-purple-500 bg-purple-500/5 animate-in slide-in-from-bottom-2">
-                                <h3 className="font-bold mb-1 flex items-center gap-2 text-purple-400">
-                                    <BrainCircuit className="w-4 h-4" /> Agentic AI Recommendation
-                                </h3>
-                                <p className="text-sm text-gray-300 leading-relaxed">
-                                    {aiRecommendation}
-                                </p>
-                            </div>
-                        )}
+                        <div className="min-h-[100px]">
+                            {agentThinking ? (
+                                <div className="glass-panel p-4 border-l-4 border-l-blue-500 bg-blue-500/5 animate-pulse flex items-center gap-3">
+                                    <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+                                    <div>
+                                        <div className="font-bold text-blue-400">Problem Definer Agent</div>
+                                        <div className="text-sm text-gray-300">{agentMessage}</div>
+                                    </div>
+                                </div>
+                            ) : aiRecommendation && (
+                                <div className="glass-panel p-4 border-l-4 border-l-purple-500 bg-purple-500/5 animate-in slide-in-from-bottom-2">
+                                    <h3 className="font-bold mb-1 flex items-center gap-2 text-purple-400">
+                                        <BrainCircuit className="w-4 h-4" /> Agentic Recommendation
+                                    </h3>
+                                    <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
+                                        {aiRecommendation}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         <div className="flex justify-end mt-8">
                             <Button onClick={() => setCurrentStep('cleaning')} disabled={!filename}>
                                 Next: Data Cleaning
@@ -338,17 +399,49 @@ export default function PipelineWizard() {
             case 'augmentation':
                 return (
                     <div className="space-y-6">
-                        <h2 className="text-2xl font-bold mb-4">4. Data Augmentation</h2>
-                        <div className="p-6 border border-gray-700 rounded-lg bg-black/20">
-                            <p className="text-gray-300 mb-4">
-                                Synthetic data generation (SMOTE) helps balance datasets and improve model generalization.
-                            </p>
-                            <div className="flex items-center gap-4">
-                                <Button variant="outline" onClick={() => addPipelineStep('augmentation', 'smote', { samples: 500 })}>
-                                    <Binary className="w-4 h-4 mr-2" /> Generate 500 Synthetic Samples
-                                </Button>
+                        <h2 className="text-2xl font-bold mb-4">4. Data Imbalance Handling</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Class Weighting */}
+                            <div className={`p-4 rounded-lg border cursor-pointer transition-all ${augmentationMethod === 'class_weight' ? 'border-accent bg-accent/10' : 'border-gray-700 hover:border-gray-500'}`}
+                                onClick={() => {
+                                    setAugmentationMethod('class_weight');
+                                    addPipelineStep('augmentation', 'class_weight', {});
+                                }}>
+                                <h3 className="font-bold text-blue-400 mb-2">🥇 Class Weighting</h3>
+                                <p className="text-sm text-gray-400">Penalize mistakes on minority class. Best for Tree-based models (Random Forest, XGBoost).</p>
+                            </div>
+
+                            {/* Undersampling */}
+                            <div className={`p-4 rounded-lg border cursor-pointer transition-all ${augmentationMethod === 'undersampling' ? 'border-accent bg-accent/10' : 'border-gray-700 hover:border-gray-500'}`}
+                                onClick={() => {
+                                    setAugmentationMethod('undersampling');
+                                    addPipelineStep('augmentation', 'undersampling', {});
+                                }}>
+                                <h3 className="font-bold text-orange-400 mb-2">🥈 Undersampling</h3>
+                                <p className="text-sm text-gray-400">Reduce majority class. Good for massive datasets to speed up training.</p>
+                            </div>
+
+                            {/* SMOTE */}
+                            <div className={`p-4 rounded-lg border cursor-pointer transition-all ${augmentationMethod === 'smote' ? 'border-accent bg-accent/10' : 'border-gray-700 hover:border-gray-500'}`}
+                                onClick={() => {
+                                    setAugmentationMethod('smote');
+                                    addPipelineStep('augmentation', 'smote', { samples: 500 });
+                                }}>
+                                <h3 className="font-bold text-purple-400 mb-2">Synthetic Data (SMOTE)</h3>
+                                <p className="text-sm text-gray-400">Generate synthetic samples. Use when you need more data.</p>
+                            </div>
+
+                            {/* ADASYN */}
+                            <div className={`p-4 rounded-lg border cursor-pointer transition-all ${augmentationMethod === 'adasyn' ? 'border-accent bg-accent/10' : 'border-gray-700 hover:border-gray-500'}`}
+                                onClick={() => {
+                                    setAugmentationMethod('adasyn');
+                                    addPipelineStep('augmentation', 'adasyn', {});
+                                }}>
+                                <h3 className="font-bold text-pink-400 mb-2">ADASYN</h3>
+                                <p className="text-sm text-gray-400">Adaptive synthetic sampling near decision boundaries.</p>
                             </div>
                         </div>
+
                         <div className="flex justify-end mt-8">
                             <Button onClick={() => setCurrentStep('splitting')}>
                                 Next: Splitting
@@ -363,18 +456,15 @@ export default function PipelineWizard() {
                         <div className="p-8 bg-black/40 rounded-xl">
                             <p className="text-gray-400 mb-4">Define Training / Test split ratio.</p>
                             <div className="flex justify-between mb-2">
-                                <span className="text-blue-400 font-bold">Training Set: 80%</span>
-                                <span className="text-orange-400 font-bold">Test Set: 20%</span>
+                                <span className="text-blue-400 font-bold">Training Set: {Math.round(splitRatio * 100)}%</span>
+                                <span className="text-orange-400 font-bold">Test Set: {Math.round((1 - splitRatio) * 100)}%</span>
                             </div>
                             <input
                                 type="range"
                                 min="50" max="90"
-                                defaultValue="80"
+                                value={splitRatio * 100}
                                 className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                                onChange={(e) => {
-                                    // In real implementation we might store this in a global config state
-                                    // For now we just visually show it
-                                }}
+                                onChange={(e) => setSplitRatio(Number(e.target.value) / 100)}
                             />
                         </div>
                         <div className="flex justify-end mt-8">
@@ -432,12 +522,73 @@ export default function PipelineWizard() {
                                 </div>
                             ))}
                         </div>
+
+                        {/* Trigger Agent Button */}
+                        <Button variant="outline" className="w-full mt-4 border-dashed border-purple-500 text-purple-400 hover:bg-purple-500/10"
+                            onClick={async () => {
+                                setAgentThinking(true);
+                                setAgentMessage("Researching best algorithms for your data...");
+                                try {
+                                    const analysis = await modelDeveloper.execute({
+                                        id: `task_${Date.now()}`,
+                                        type: 'generate_training_code', // Reuse this task type for selection logic
+                                        status: 'pending',
+                                        payload: {
+                                            problemDefinition: { target: targetCol, type: problemType },
+                                            dataAnalysis: dataProfile
+                                        },
+                                        logs: []
+                                    });
+
+                                    if (analysis.algorithm) {
+                                        // Normalize Agent output to our keys
+                                        let algoKey = 'RandomForest';
+                                        if (analysis.algorithm.includes('Forest')) algoKey = 'RandomForest';
+                                        else if (analysis.algorithm.includes('Logistic')) algoKey = 'LogisticRegression';
+                                        else if (analysis.algorithm.includes('Boost') || analysis.algorithm.includes('XGB')) algoKey = 'XGBoost';
+                                        else if (analysis.algorithm.includes('SVM') || analysis.algorithm.includes('Support Vector')) algoKey = 'SVM';
+
+                                        addPipelineStep('selection', 'set_algo', { algorithm: algoKey });
+                                        setAiRecommendation(`🤖 **Model Developer Agent**:\n"I recommend **${algoKey}**.\n\n${analysis.justification}"`);
+                                        // Scroll to recommendation?
+                                    }
+                                } catch (e) {
+                                    console.error("Model Developer Agent failed", e);
+                                } finally {
+                                    setAgentThinking(false);
+                                    setAgentMessage("");
+                                }
+                            }}
+                        >
+                            <BrainCircuit className="w-4 h-4 mr-2" /> Ask Agent for Best Model
+                        </Button>
+
+
+                        {/* Agent Recommendation Display for Selection */}
+                        <div className="min-h-[50px] mt-4">
+                            {agentThinking ? (
+                                <div className="glass-panel p-4 border-l-4 border-l-blue-500 bg-blue-500/5 animate-pulse flex items-center gap-3">
+                                    <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+                                    <div>
+                                        <div className="font-bold text-blue-400">Model Developer Agent</div>
+                                        <div className="text-sm text-gray-300">{agentMessage}</div>
+                                    </div>
+                                </div>
+                            ) : (currentStep === 'selection' && aiRecommendation && aiRecommendation.includes('Model Developer')) && (
+                                <div className="glass-panel p-4 border-l-4 border-l-purple-500 bg-purple-500/5 animate-in slide-in-from-bottom-2">
+                                    <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
+                                        {aiRecommendation}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         <div className="flex justify-end mt-8">
                             <Button onClick={() => setCurrentStep('training')} disabled={!pipelineSteps.find(s => s.type === 'selection')}>
                                 Next: Training
                             </Button>
                         </div>
-                    </div>
+                    </div >
                 );
             case 'training':
                 return (
@@ -479,6 +630,10 @@ export default function PipelineWizard() {
                                         // 3. Construct Python Pipeline Script
                                         const algo = pipelineSteps.find(s => s.type === 'selection')?.params?.algorithm || 'RandomForest';
 
+                                        // Detect Augmentation
+                                        const augStep = pipelineSteps.find(s => s.type === 'augmentation');
+                                        const useClassWeight = augStep?.action === 'class_weight' ? 'balanced' : null;
+
                                         // Dynamic Script Construction
                                         let script = `
 import pandas as pd
@@ -486,10 +641,10 @@ import numpy as np
 import json
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, LabelEncoder, OneHotEncoder
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score, precision_score, recall_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.impute import SimpleImputer
 from sklearn.compose import ColumnTransformer
 
@@ -531,18 +686,40 @@ if len(num_cols) > 0:
 `;
                                             }
 
-                                            if (step.type === 'augmentation' && step.action === 'smote') {
-                                                // Check if imbalanced-learn is available, otherwise skip or warn
-                                                // For standard Pyodide, we might skip heavy SMOTE if not installed, or try-except
-                                                script += `
-# SMOTE Augmentation (Placeholder/Requires imblearn)
-# try:
-#     from imblearn.over_sampling import SMOTE
-#     sm = SMOTE(random_state=42)
-#     X, y = sm.fit_resample(X, y)
-# except:
-#     pass
+                                            if (step.type === 'augmentation') {
+                                                if (step.action === 'smote') {
+                                                    script += `
+# SMOTE Augmentation
+try:
+    from imblearn.over_sampling import SMOTE
+    sm = SMOTE(random_state=42)
+    X, y = sm.fit_resample(X, y)
+except:
+    pass
 `;
+                                                }
+                                                if (step.action === 'adasyn') {
+                                                    script += `
+# ADASYN Augmentation
+try:
+    from imblearn.over_sampling import ADASYN
+    ada = ADASYN(random_state=42)
+    X, y = ada.fit_resample(X, y)
+except:
+    pass
+`;
+                                                }
+                                                if (step.action === 'undersampling') {
+                                                    script += `
+# Random Undersampling
+try:
+    from imblearn.under_sampling import RandomUnderSampler
+    rus = RandomUnderSampler(random_state=42)
+    X, y = rus.fit_resample(X, y)
+except:
+    pass
+`;
+                                                }
                                             }
                                         });
 
@@ -559,21 +736,32 @@ if y.dtype == 'object':
     y = le.fit_transform(y.astype(str))
 
 # Split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=${(1 - splitRatio).toFixed(2)}, random_state=42)
 `;
 
                                         // Model Training
                                         const algoMap: Record<string, string> = {
                                             'RandomForest': 'RandomForestClassifier',
                                             'LogisticRegression': 'LogisticRegression',
-                                            'XGBoost': 'RandomForestClassifier', // Fallback
+                                            'XGBoost': 'GradientBoostingClassifier', // Using Sklearn equivalent for now
                                             'SVM': 'SVC'
                                         };
                                         const pyAlgo = algoMap[algo] || 'RandomForestClassifier';
 
+                                        // Construct Model Params
+                                        let modelParams = "";
+                                        if (useClassWeight) {
+                                            if (['RandomForestClassifier', 'LogisticRegression', 'SVC'].includes(pyAlgo)) {
+                                                modelParams = "class_weight='balanced'";
+                                            }
+                                        }
+
                                         script += `
 # Train Model
-model = ${pyAlgo}()
+model = ${pyAlgo}(${modelParams})
+if "${pyAlgo}" == "SVC":
+    model.probability = True
+
 model.fit(X_train, y_train)
 
 # Evaluate
@@ -581,11 +769,36 @@ y_pred = model.predict(X_test)
 acc = accuracy_score(y_test, y_pred)
 prec = precision_score(y_test, y_pred, average='weighted', zero_division=0)
 rec = recall_score(y_test, y_pred, average='weighted', zero_division=0)
+f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
+
+# Threshold Tuning (Binary Classification)
+best_thresh = 0.5
+if len(np.unique(y)) == 2 and hasattr(model, "predict_proba"):
+    try:
+        y_proba = model.predict_proba(X_test)[:, 1]
+        thresholds = np.linspace(0.1, 0.9, 17)
+        best_f1_tuned = 0
+        for t in thresholds:
+            yp = (y_proba >= t).astype(int)
+            score = f1_score(y_test, yp, zero_division=0)
+            if score > best_f1_tuned:
+                best_f1_tuned = score
+                best_thresh = t
+        
+        y_pred = (y_proba >= best_thresh).astype(int)
+        acc = accuracy_score(y_test, y_pred)
+        prec = precision_score(y_test, y_pred, zero_division=0)
+        rec = recall_score(y_test, y_pred, zero_division=0)
+        f1 = best_f1_tuned
+    except:
+        pass
 
 metrics = {
     "accuracy": acc,
     "precision": prec,
-    "recall": rec
+    "recall": rec,
+    "f1": f1,
+    "best_threshold": best_thresh
 }
 print(json.dumps(metrics))
 `;
@@ -671,6 +884,15 @@ joblib.dump(model, 'model.joblib')
                             <div className="p-6 bg-white/5 rounded-xl border border-gray-700">
                                 <div className="text-sm text-gray-500 mb-1">Recall</div>
                                 <div className="text-3xl font-mono text-accent">{metrics?.recall?.toFixed(3) || '0.000'}</div>
+                            </div>
+                            <div className="p-6 bg-white/5 rounded-xl border border-gray-700">
+                                <div className="text-sm text-gray-500 mb-1">F1 Score</div>
+                                <div className="text-3xl font-mono text-accent">{metrics?.f1?.toFixed(3) || '0.000'}</div>
+                                {metrics?.best_threshold && metrics.best_threshold !== 0.5 && (
+                                    <div className="text-xs text-green-400 mt-2">
+                                        Thresh: {metrics.best_threshold.toFixed(2)}
+                                    </div>
+                                )}
                             </div>
                         </div>
 

@@ -38,6 +38,12 @@ export default function usePyodide() {
                 // Note: 'micropip' is standard, we load 'pandas' etc.
                 await pyodideInstance.loadPackage(['micropip', 'pandas', 'numpy', 'scikit-learn', 'matplotlib', 'seaborn']);
 
+                // Install imbalanced-learn for Augmentation steps
+                await pyodideInstance.runPythonAsync(`
+                    import micropip
+                    await micropip.install('imbalanced-learn')
+                `);
+
                 // Auto-Import common libraries and PySpark Shim
                 try {
                     await pyodideInstance.runPythonAsync(`
