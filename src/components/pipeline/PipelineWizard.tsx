@@ -36,8 +36,10 @@ export default function PipelineWizard() {
 
     // Config Input
     const [targetCol, setTargetCol] = useState('');
+    const [problemType, setProblemType] = useState('classification'); // Added for auto-population
     const [metrics, setMetrics] = useState<any>(null); // Added for Results Step
     const [modelId, setModelId] = useState<string>(''); // Added for Deployment
+    const [aiRecommendation, setAiRecommendation] = useState<string>(''); // AI Recommendation State
 
     // Fetch Preview whenever pipelineSteps change
     useEffect(() => {
@@ -47,6 +49,18 @@ export default function PipelineWizard() {
 
         if (filename && currentStep !== 'config') {
             fetchPreview();
+        } else if (filename && currentStep === 'config') {
+            // Auto-populate config from session storage heuristics
+            const recTarget = sessionStorage.getItem('recommended_target');
+            const recTask = sessionStorage.getItem('recommended_task');
+            if (recTarget && !targetCol) setTargetCol(recTarget);
+            if (recTask) setProblemType(recTask);
+
+            if (recTarget && recTask) {
+                setAiRecommendation(`Based on the dataset, we detected '${recTarget}' as the likely target. 
+                 Since it has ${recTask === 'classification' ? 'few' : 'many'} unique values, we recommend a ${recTask.toUpperCase()} approach using 
+                 ${recTask === 'classification' ? 'Random Forest or XGBoost' : 'Gradient Boosting'} algorithms.`);
+            }
         }
     }, [pipelineSteps, currentStep, filename]);
 
@@ -66,7 +80,7 @@ export default function PipelineWizard() {
                     setDataProfile({ rows: lines.length - 1, columns: {} });
 
                     // Mock preview for table
-                    const previewRows = lines.slice(1, 9).map((line: string) => {
+                    const previewRows = lines.slice(1, 51).map((line: string) => {
                         const vals = line.split(',').map((v: string) => v.trim());
                         const obj: any = {};
                         cols.forEach((col: string, i: number) => {
@@ -124,10 +138,29 @@ export default function PipelineWizard() {
                             </div>
                             <div>
                                 <label className="block text-sm text-gray-400 mb-2">Target Column</label>
-                                <input className="w-full bg-black/30 border border-gray-700 rounded p-3 text-white focus:border-accent outline-none"
-                                    value={targetCol} onChange={e => setTargetCol(e.target.value)} placeholder="e.g., Survived" />
+                                <div className="relative">
+                                    <input className="w-full bg-black/30 border border-gray-700 rounded p-3 text-white focus:border-accent outline-none"
+                                        value={targetCol} onChange={e => setTargetCol(e.target.value)} placeholder="e.g., Survived" />
+                                    {sessionStorage.getItem('recommended_target') === targetCol && targetCol !== '' && (
+                                        <span className="absolute right-3 top-3 text-xs text-emerald-400 flex items-center gap-1">
+                                            <BrainCircuit className="w-3 h-3" /> Auto-Detected
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
+
+                        {/* AI Recommendation Panel */}
+                        {aiRecommendation && (
+                            <div className="glass-panel p-4 border-l-4 border-l-purple-500 bg-purple-500/5 animate-in slide-in-from-bottom-2">
+                                <h3 className="font-bold mb-1 flex items-center gap-2 text-purple-400">
+                                    <BrainCircuit className="w-4 h-4" /> Agentic AI Recommendation
+                                </h3>
+                                <p className="text-sm text-gray-300 leading-relaxed">
+                                    {aiRecommendation}
+                                </p>
+                            </div>
+                        )}
                         <div className="flex justify-end mt-8">
                             <Button onClick={() => setCurrentStep('cleaning')} disabled={!filename}>
                                 Next: Data Cleaning
@@ -636,16 +669,16 @@ joblib.dump(model, 'model.joblib')
                                 <span className="text-xs">Processing Transforms...</span>
                             </div>
                         ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-xs text-left">
-                                    <thead>
+                            <div className="overflow-x-auto max-h-[600px] overflow-y-auto custom-scrollbar">
+                                <table className="w-full text-xs text-left relative">
+                                    <thead className="sticky top-0 bg-[#0a0a1f] z-10 shadow-lg">
                                         <tr className="border-b border-gray-700">
                                             {columns.slice(0, 3).map(c => <th key={c} className="p-2 text-gray-400 font-normal">{c}</th>)}
                                             {columns.length > 3 && <th className="p-2 text-gray-400">...</th>}
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {dataPreview.slice(0, 8).map((row, i) => (
+                                        {dataPreview.map((row, i) => (
                                             <tr key={i} className="border-b border-gray-800 hover:bg-white/5">
                                                 {columns.slice(0, 3).map(c => <td key={c} className="p-2 font-mono text-gray-300">{String(row[c]).substring(0, 10)}</td>)}
                                                 {columns.length > 3 && <td className="p-2 text-gray-600">...</td>}
@@ -654,7 +687,7 @@ joblib.dump(model, 'model.joblib')
                                     </tbody>
                                 </table>
                                 <div className="mt-2 text-xs text-gray-500 text-right">
-                                    Showing top 8 rows of {dataProfile?.rows || 0}
+                                    Showing top {dataPreview.length} rows of {dataProfile?.rows || 0}
                                 </div>
                             </div>
                         )}

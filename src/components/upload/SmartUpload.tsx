@@ -58,16 +58,52 @@ export default function SmartUpload({ onAnalysisComplete }: SmartUploadProps) {
                         rowCount: rowCount,
                         data: results.data, // Include full data for client-side processing
                         preview: preview,
+                    };
+
+                    // --- HEURISTIC ANALYSIS ---
+                    const lowerCols = columns.map(c => c.toLowerCase());
+                    let recommendedTarget = '';
+                    let recommendedTask = 'classification';
+
+                    // 1. Target Detection
+                    const targetKeywords = ['target', 'label', 'class', 'survived', 'churn', 'price', 'salary', 'species'];
+                    for (const keyword of targetKeywords) {
+                        const idx = lowerCols.indexOf(keyword);
+                        if (idx !== -1) {
+                            recommendedTarget = columns[idx];
+                            break;
+                        }
+                    }
+                    // Fallback to last column if no keyword match
+                    if (!recommendedTarget && columns.length > 0) {
+                        recommendedTarget = columns[columns.length - 1];
+                    }
+
+                    // 2. Task Detection (Classification vs Regression)
+                    if (recommendedTarget) {
+                        const uniqueValues = new Set(results.data.slice(0, 500).map((r: any) => r[recommendedTarget])).size;
+                        if (uniqueValues > 20) {
+                            recommendedTask = 'regression'; // Likely regression if many unique values
+                        }
+                    }
+
+                    sessionStorage.setItem('recommended_target', recommendedTarget);
+                    sessionStorage.setItem('recommended_task', recommendedTask);
+
+                    const analysisResultWithInsights = {
+                        ...analysisResult,
+                        recommendedTarget,
+                        recommendedTask,
                         insights: `
                             • Dataset contains ${rowCount.toLocaleString()} rows and ${columns.length} columns.
-                            • Detected columns: ${columns.slice(0, 5).join(', ')}...
-                            • Recommended models: Random Forest, XGBoost (based on data shape).
+                            • Detected target column: "${recommendedTarget}" (${recommendedTask}).
+                            • Recommended models: ${recommendedTask === 'classification' ? 'Random Forest, XGBoost' : 'Linear Regression, Gradient Boosting'}.
                             • No missing values detected in first 100 rows.
                         `
                     };
 
                     if (onAnalysisComplete) {
-                        onAnalysisComplete(analysisResult);
+                        onAnalysisComplete(analysisResultWithInsights);
                     }
                 },
                 error: (error) => {
