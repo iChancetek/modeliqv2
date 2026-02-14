@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { BackButton } from '@/components/ui/back-button';
 import SmartUpload from '@/components/upload/SmartUpload';
 import InsightCard from '@/components/studio/InsightCard';
 import ExplorationView from '@/components/studio/ExplorationView';
@@ -54,6 +55,9 @@ export default function StudioPage() {
             <FloatingSidebar />
 
             <div className="pl-4 md:pl-28 p-8 max-w-[1600px] mx-auto pt-24">
+                <div className="mb-4">
+                    <BackButton fallbackUrl="/" />
+                </div>
                 <header className="mb-10 flex justify-between items-end">
                     <div>
                         <h1 className="text-4xl font-bold tracking-tight mb-2">
