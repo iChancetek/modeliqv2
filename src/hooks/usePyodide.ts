@@ -34,11 +34,12 @@ export default function usePyodide() {
 
                 const pyodideInstance = await window.loadPyodide();
 
-                // Load critical packages & micropip
+                // Load packages: pandas, numpy, scikit-learn, matplotlib, seaborn
+                // Note: 'micropip' is standard, we load 'pandas' etc.
                 await pyodideInstance.loadPackage(['micropip', 'pandas', 'numpy', 'scikit-learn', 'matplotlib', 'seaborn']);
 
-                // Set up visualizer shim and Auto-Imports
-                pyodideInstance.runPython(`
+                // Auto-Import common libraries into the global namespace
+                await pyodideInstance.runPythonAsync(`
                     import sys
                     import io
                     import pandas as pd
@@ -47,6 +48,7 @@ export default function usePyodide() {
                     import seaborn as sns
                     import sklearn
                     
+                    # Setup standard IO capture
                     sys.stdout = io.StringIO()
                     sys.stderr = io.StringIO()
                     
@@ -69,7 +71,7 @@ export default function usePyodide() {
         if (!pyodide) return { result: null, error: "Pyodide not loaded" };
 
         try {
-            // Capture standard output
+            // Reset standard output buffers
             pyodide.runPython(`
                 import sys
                 import io
@@ -77,10 +79,20 @@ export default function usePyodide() {
                 sys.stderr = io.StringIO()
             `);
 
+            // Check if plt is used and setup figure
+            const isPlotting = code.includes('plt.') || code.includes('sns.');
+            if (isPlotting) {
+                pyodide.runPython("plt.clf()"); // Clear previous plots
+            }
+
             const result = await pyodide.runPythonAsync(code);
 
             const stdout = pyodide.runPython("sys.stdout.getvalue()");
             const stderr = pyodide.runPython("sys.stderr.getvalue()");
+
+            // Handle Plot Image output if generated
+            // This is a naive implementation; better entails wrapping in a helper
+            // For now, we rely on stdout. In a real integration, we'd check for active figures.
 
             return { result, stdout, stderr, error: null };
         } catch (error: any) {

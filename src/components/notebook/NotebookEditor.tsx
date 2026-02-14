@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import usePyodide from '@/hooks/usePyodide';
-import { Play, Save, Plus, Trash2, RefreshCw, Sparkles, Download, Wand2, X } from 'lucide-react';
+import { Play, Save, Plus, Trash2, RefreshCw, Sparkles, Download, Wand2, X, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -13,7 +13,8 @@ interface NotebookCell {
     output?: string;
     stdOut?: string;
     stdErr?: string;
-    isAiOpen?: boolean; // New: Track if AI input is open for this cell
+    status?: 'idle' | 'running' | 'success' | 'error';
+    isAiOpen?: boolean;
 }
 
 export default function NotebookEditor() {
@@ -41,7 +42,7 @@ export default function NotebookEditor() {
 
     const saveNotebook = () => {
         // Remove transient UI state before saving
-        const cleanCells = cells.map(({ isAiOpen, ...rest }) => rest);
+        const cleanCells = cells.map(({ isAiOpen, status, ...rest }) => rest);
         localStorage.setItem('modeliq_notebook', JSON.stringify(cleanCells));
         alert("Notebook saved successfully!");
     };
@@ -153,7 +154,7 @@ export default function NotebookEditor() {
         setActiveCell(id);
 
         setCells(prev => prev.map(cell =>
-            cell.id === id ? { ...cell, output: "Executing..." } : cell
+            cell.id === id ? { ...cell, output: "Executing...", status: 'running' } : cell
         ));
 
         const { result, stdout, stderr, error } = await runPython(code);
@@ -163,7 +164,8 @@ export default function NotebookEditor() {
                 ...cell,
                 output: error ? null : (result?.toString() || ""),
                 stdOut: stdout,
-                stdErr: stderr || (error ? error.toString() : null)
+                stdErr: stderr || (error ? error.toString() : null),
+                status: error ? 'error' : 'success'
             } : cell
         ));
         setActiveCell(null);
@@ -227,34 +229,30 @@ export default function NotebookEditor() {
             <div className="space-y-6">
                 {cells.map((cell) => (
                     <div key={cell.id} className="glass-panel p-1 rounded-xl transition-all hover:border-primary/30 relative group">
-                        {/* Cell Controls Overhead */}
-                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
-                            <button
-                                onClick={() => toggleAi(cell.id)}
-                                className={`p-1 transition-colors ${cell.isAiOpen ? 'text-accent' : 'text-muted-foreground hover:text-white'}`}
-                                title="AI Edit/Generate"
-                            >
-                                <Wand2 className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => deleteCell(cell.id)} className="p-1 hover:text-red-400 text-muted-foreground transition-colors">
-                                <Trash2 className="w-4 h-4" />
-                            </button>
+                        {/* Cell Toolbar (Top) */}
+                        <div className="flex items-center justify-between p-2 bg-black/40 border-b border-white/5 rounded-t-lg">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-mono text-muted-foreground ml-2">[{cell.type}]</span>
+                                {cell.status === 'success' && <CheckCircle2 className="w-3 h-3 text-green-500" />}
+                                {cell.status === 'error' && <XCircle className="w-3 h-3 text-red-500" />}
+                                {cell.status === 'running' && <Loader2 className="w-3 h-3 animate-spin text-primary" />}
+                            </div>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 text-xs text-purple-400 hover:text-purple-300 hover:bg-purple-900/20"
+                                    onClick={() => toggleAi(cell.id)}
+                                >
+                                    <Sparkles className="w-3 h-3 mr-1" /> AI Edit
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 text-red-400 hover:bg-red-900/20" onClick={() => deleteCell(cell.id)}>
+                                    <Trash2 className="w-3 h-3" />
+                                </Button>
+                            </div>
                         </div>
 
-                        <div className="bg-black/40 rounded-lg p-4">
-                            <div className="flex justify-between mb-2 text-xs text-muted-foreground uppercase tracking-widest font-bold">
-                                <span>[{cell.type}]</span>
-                                {cell.type === 'code' && (
-                                    <button
-                                        onClick={() => executeCell(cell.id, cell.content)}
-                                        disabled={isLoading || activeCell === cell.id}
-                                        className="text-primary hover:text-white transition-colors flex items-center gap-1 disabled:opacity-50"
-                                    >
-                                        <Play className="w-3 h-3 fill-current" /> {activeCell === cell.id ? 'Running...' : 'Run'}
-                                    </button>
-                                )}
-                            </div>
-
+                        <div className="bg-black/40 rounded-b-lg p-4">
                             {/* Cell Content */}
                             {cell.type === 'markdown' ? (
                                 <textarea
@@ -269,27 +267,40 @@ export default function NotebookEditor() {
                                         className="w-full bg-[#0d0d14] p-4 rounded-md text-sm text-blue-300 font-mono resize-none focus:outline-none focus:ring-1 focus:ring-primary/50 min-h-[100px]"
                                         value={cell.content}
                                         onChange={(e) => setCells(prev => prev.map(c => c.id === cell.id ? { ...c, content: e.target.value } : c))}
+                                        placeholder="# Write Python code here..."
                                         spellCheck={false}
                                     />
 
+                                    <div className="flex justify-end">
+                                        <Button
+                                            size="sm"
+                                            onClick={() => executeCell(cell.id, cell.content)}
+                                            disabled={isLoading || activeCell === cell.id}
+                                            className="h-8"
+                                        >
+                                            <Play className="w-3 h-3 mr-1 fill-current" /> Run
+                                        </Button>
+                                    </div>
+
                                     {/* Per-Cell AI Input */}
                                     {cell.isAiOpen && (
-                                        <div className="flex gap-2 animate-in slide-in-from-top-2">
+                                        <div className="flex gap-2 animate-in slide-in-from-top-2 bg-purple-900/10 p-2 rounded-md border border-purple-500/20 mb-2">
                                             <Wand2 className="w-4 h-4 text-accent mt-2" />
                                             <Input
                                                 autoFocus
-                                                placeholder="Tell AI how to change this cell (e.g., 'Fix the syntax error' or 'Use seaborn instead')..."
-                                                className="bg-accent/10 border-accent/30 text-accent placeholder:text-accent/50"
+                                                placeholder="AI Instruction (e.g., 'Fix the syntax error')..."
+                                                className="bg-black/40 border-accent/30 text-accent placeholder:text-accent/50"
                                                 value={cellAiPrompts[cell.id] || ""}
                                                 onChange={(e) => setCellAiPrompts(p => ({ ...p, [cell.id]: e.target.value }))}
                                                 onKeyDown={(e) => e.key === 'Enter' && generateCode(cellAiPrompts[cell.id], cell.id)}
                                             />
                                             <Button
                                                 size="sm"
-                                                variant="ghost"
-                                                onClick={() => toggleAi(cell.id)}
+                                                className="bg-purple-600 hover:bg-purple-700"
+                                                onClick={() => generateCode(cellAiPrompts[cell.id], cell.id)}
+                                                disabled={isGenerating}
                                             >
-                                                <X className="w-4 h-4" />
+                                                {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Gen"}
                                             </Button>
                                         </div>
                                     )}
