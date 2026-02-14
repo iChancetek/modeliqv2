@@ -9,7 +9,7 @@ import {
     Terminal,
     Cpu,
     Zap,
-    layers,
+
     Layout,
     GitBranch,
     Shield,
