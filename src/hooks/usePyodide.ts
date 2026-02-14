@@ -34,8 +34,8 @@ export default function usePyodide() {
 
                 const pyodideInstance = await window.loadPyodide();
 
-                // Load critical packages
-                await pyodideInstance.loadPackage(['pandas', 'numpy', 'scikit-learn', 'matplotlib']);
+                // Load critical packages & micropip
+                await pyodideInstance.loadPackage(['micropip', 'pandas', 'numpy', 'scikit-learn', 'matplotlib']);
 
                 // Set up visualizer shim
                 pyodideInstance.runPython(`

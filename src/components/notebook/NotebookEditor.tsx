@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import usePyodide from '@/hooks/usePyodide';
-import { Play, Save, Plus, Trash2, RefreshCw } from 'lucide-react';
+import { Play, Save, Plus, Trash2, RefreshCw, Sparkles, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface NotebookCell {
     id: string;
@@ -21,6 +22,8 @@ export default function NotebookEditor() {
         { id: '2', type: 'code', content: 'import pandas as pd\nimport numpy as np\nprint("ChanceTEK AI Kernel Ready!")' }
     ]);
     const [activeCell, setActiveCell] = useState<string | null>(null);
+    const [aiPrompt, setAiPrompt] = useState("");
+    const [isGenerating, setIsGenerating] = useState(false);
 
     // Load from local storage on mount
     useEffect(() => {
@@ -39,6 +42,53 @@ export default function NotebookEditor() {
         alert("Notebook saved successfully!");
     };
 
+    const exportJupyter = () => {
+        const notebook = {
+            metadata: {
+                kernelspec: {
+                    display_name: "Python 3 (Pyodide)",
+                    language: "python",
+                    name: "python3"
+                },
+                language_info: {
+                    codemirror_mode: { name: "ipython", version: 3 },
+                    file_extension: ".py",
+                    mimetype: "text/x-python",
+                    name: "python",
+                    console_type: "python3",
+                    nbconvert_exporter: "python",
+                    pygments_lexer: "ipython3",
+                    version: "3.8"
+                }
+            },
+            nbformat: 4,
+            nbformat_minor: 5,
+            cells: cells.map(cell => ({
+                cell_type: cell.type,
+                metadata: {},
+                source: cell.content.split('\n').map(line => line + '\n'),
+                outputs: cell.type === 'code' && (cell.stdOut || cell.output) ? [
+                    {
+                        name: "stdout",
+                        output_type: "stream",
+                        text: (cell.stdOut || "") + (cell.output || "")
+                    }
+                ] : [],
+                execution_count: null
+            }))
+        };
+
+        const blob = new Blob([JSON.stringify(notebook, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `notebook-${new Date().toISOString().slice(0, 10)}.ipynb`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
     const newNotebook = () => {
         if (confirm("Create new notebook? Unsaved changes will be lost.")) {
             setCells([
@@ -46,6 +96,36 @@ export default function NotebookEditor() {
                 { id: 'code-1', type: 'code', content: '' }
             ]);
             localStorage.removeItem('modeliq_notebook');
+        }
+    };
+
+    const generateCode = async () => {
+        if (!aiPrompt.trim()) return;
+        setIsGenerating(true);
+
+        try {
+            const response = await fetch('/api/generate-code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: aiPrompt })
+            });
+            const data = await response.json();
+
+            if (data.code) {
+                setCells([...cells, {
+                    id: Date.now().toString(),
+                    type: 'code',
+                    content: data.code
+                }]);
+                setAiPrompt("");
+            } else {
+                alert("Failed to generate code: " + (data.error || "Unknown error"));
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error connecting to AI service.");
+        } finally {
+            setIsGenerating(false);
         }
     };
 
@@ -77,15 +157,41 @@ export default function NotebookEditor() {
     return (
         <div className="w-full max-w-5xl mx-auto p-4 space-y-6">
             {/* Toolbar */}
-            <div className="flex justify-between items-center glass-panel p-4 rounded-xl mb-6">
+            <div className="flex flex-col md:flex-row justify-between items-center glass-panel p-4 rounded-xl mb-6 gap-4">
                 <div className="flex items-center gap-4">
                     <div className={`w-3 h-3 rounded-full ${isLoading ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`} />
                     <span className="text-sm font-mono text-muted-foreground">
                         {isLoading ? "Loading Kernel..." : "Kernel Ready (Pyodide v0.25)"}
                     </span>
                 </div>
+
+                {/* AI Assistant */}
+                <div className="flex-1 max-w-lg mx-4 flex gap-2 w-full md:w-auto">
+                    <div className="relative flex-1">
+                        <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-accent" />
+                        <Input
+                            placeholder="Describe logic to generate (e.g., 'Load titanic.csv and plot ages')..."
+                            className="pl-9 bg-black/20 border-white/10 focus-visible:ring-accent w-full"
+                            value={aiPrompt}
+                            onChange={(e) => setAiPrompt(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && generateCode()}
+                        />
+                    </div>
+                    <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={generateCode}
+                        disabled={isGenerating}
+                    >
+                        {isGenerating ? "Thinking..." : "Generate"}
+                    </Button>
+                </div>
+
                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={newNotebook}>
+                    <Button variant="outline" size="sm" onClick={exportJupyter} title="Download .ipynb">
+                        <Download className="w-4 h-4 mr-2" /> Export
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={newNotebook}>
                         <RefreshCw className="w-4 h-4 mr-2" /> New
                     </Button>
                     <Button variant="elite" size="sm" onClick={saveNotebook}>
