@@ -21,20 +21,67 @@ interface PackagingResult {
 
 export class PackagingAgent {
     async generatePackage(request: PackagingRequest): Promise<PackagingResult> {
-        const prompt = `
-      You are an expert MLOps engineer. Generate the necessary files to containerize an ML model for production deployment.
-      
-      Model Details:
-      - Name: ${request.modelName}
-      - Type: ${request.modelType}
-      - Framework: ${request.framework}
-      - Python Version: ${request.pythonVersion}
-      - Dependencies: ${request.requirements.join(', ')}
+        const telemetryUrl = process.env.NEXT_PUBLIC_API_URL || 'https://modeliqv2.firebaseapp.com';
 
-      Output JSON with the following keys:
-      - "dockerfile": A production-ready Dockerfile (using multi-stage builds, non-root user).
-      - "requirementsTxt": The content of requirements.txt.
-      - "serverCode": A complete main.py using FastAPI to serve the model (assume 'model.joblib' or 'model.pkl' is present).
+        const prompt = `
+You are an expert MLOps engineer. Generate the necessary files to containerize an ML model for production deployment with BUILT-IN TELEMETRY.
+
+Model Details:
+- Name: ${request.modelName}
+- Type: ${request.modelType}
+- Framework: ${request.framework}
+- Python Version: ${request.pythonVersion}
+- Dependencies: ${request.requirements.join(', ')}
+
+**CRITICAL**: The FastAPI server MUST include telemetry hooks that POST metrics to the Modeliq Sentinel API after each prediction.
+
+Output JSON with the following keys:
+- "dockerfile": A production-ready Dockerfile (using multi-stage builds, non-root user).
+- "requirementsTxt": The content of requirements.txt (include 'requests' for telemetry).
+- "serverCode": A complete main.py using FastAPI with the following telemetry integration:
+
+TELEMETRY TEMPLATE:
+\`\`\`python
+import requests
+import time
+
+TELEMETRY_URL = "${telemetryUrl}/api/telemetry/ingest"
+MODEL_ID = "${request.modelName}"
+MODEL_VERSION = "v1.0.0"
+
+def send_telemetry(latency_ms, input_features, output, confidence):
+    try:
+        payload = {
+            "modelId": MODEL_ID,
+            "version": MODEL_VERSION,
+            "metrics": {
+                "latencyMs": latency_ms,
+                "throughputRps": 1,
+                "errorRate": 0.0,
+                "cpuUsage": 0.5,
+                "memoryUsage": 0.6
+            },
+            "prediction": {
+                "inputFeatures": input_features,
+                "outputValue": str(output),
+                "confidence": float(confidence)
+            }
+        }
+        requests.post(TELEMETRY_URL, json=payload, timeout=2)
+    except Exception as e:
+        print(f"Telemetry failed: {e}")
+
+@app.post("/predict")
+async def predict(data: dict):
+    start = time.time()
+    result = model.predict(data['features'])
+    confidence = 0.95
+    latency_ms = (time.time() - start) * 1000
+    send_telemetry(latency_ms, data['features'], result, confidence)
+    return {"prediction": result, "confidence": confidence}
+\`\`\`
+
+Ensure the /predict endpoint includes this telemetry call for every request.
     `;
 
         try {
