@@ -488,16 +488,37 @@ print(json.dumps(metrics))
                                         } else {
                                             // Parse stdout for JSON metrics
                                             try {
-                                                // Find the JSON object in stdout (it might have other prints)
                                                 const lines = stdout.trim().split('\n');
-                                                const jsonLine = lines[lines.length - 1]; // Assume last line is the JSON
+                                                const jsonLine = lines[lines.length - 1];
                                                 const metrics = JSON.parse(jsonLine);
 
                                                 setMetrics(metrics);
                                                 setModelId(`model_${Date.now()}_${algo}`);
                                                 setCurrentStep('results');
+
+                                                // --- NEW: Persist Model for Deployment ---
+                                                // 1. Dump model in Python (We need to run a separate script or append to previous)
+                                                // Since previous script finished, variables are still in scope in Pyodide!
+                                                await runPython(`
+import joblib
+joblib.dump(model, 'model.joblib')
+                                                `);
+
+                                                // 2. Read from FS
+                                                const modelFileContent = pyodide.FS.readFile('model.joblib');
+
+                                                // 3. Save to Global (Client-side persistence)
+                                                const file = new File([modelFileContent], `${algo}_model.joblib`, { type: 'application/octet-stream' });
+
+                                                // @ts-ignore
+                                                window.__PENDING_MODEL__ = file;
+                                                // @ts-ignore
+                                                window.__PENDING_METRICS__ = metrics;
+
+                                                console.log("Model saved to window.__PENDING_MODEL__", file);
+
                                             } catch (parseError) {
-                                                console.error("Failed to parse metrics", stdout);
+                                                console.error("Failed to parse metrics or save model", parseError, stdout);
                                             }
                                         }
 

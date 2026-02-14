@@ -34,8 +34,43 @@ export default function DeploymentDashboard() {
     );
 }
 
+import { useSearchParams } from 'next/navigation';
+import { useMLOps } from './MLOpsContext';
+
 function DashboardContent() {
-    const [activeTab, setActiveTab] = useState('define'); // Default to start of lifecycle
+    const searchParams = useSearchParams();
+    const modelId = searchParams.get('model_id');
+
+    const [activeTab, setActiveTab] = useState('define');
+    const { setModel } = useMLOps();
+
+    React.useEffect(() => {
+        if (modelId) {
+            setActiveTab('deploy');
+
+            // Check for pending model
+            // @ts-ignore
+            if (window.__PENDING_MODEL__) {
+                // @ts-ignore
+                const file = window.__PENDING_MODEL__;
+                // @ts-ignore
+                const metrics = window.__PENDING_METRICS__ || {};
+
+                setModel({
+                    name: file.name,
+                    version: '1.0.0',
+                    format: 'sklearn',
+                    sizeBytes: file.size,
+                    uploadedAt: new Date(),
+                    metrics: metrics
+                });
+
+                // Cleanup
+                // @ts-ignore
+                window.__PENDING_MODEL__ = undefined;
+            }
+        }
+    }, [modelId, setModel]);
 
     return (
         <div className="w-full h-full p-6 space-y-6">
