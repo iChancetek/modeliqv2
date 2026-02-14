@@ -30,14 +30,21 @@ export interface AgentTask {
 // --- Base Agent Class ---
 
 export abstract class BaseAgent {
-    protected openai: OpenAI;
+    private _openai: OpenAI | undefined;
     protected model: string = 'gpt-5.2'; // Upgrading to GPT-5.2 as requested
 
     constructor() {
-        this.openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY,
-            dangerouslyAllowBrowser: true // Allowed for this client-side demo
-        });
+        // Lazy initialization to prevent build-time errors
+    }
+
+    protected get openai(): OpenAI {
+        if (!this._openai) {
+            this._openai = new OpenAI({
+                apiKey: process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY,
+                dangerouslyAllowBrowser: true // Allowed for this client-side demo
+            });
+        }
+        return this._openai;
     }
 
     abstract getRole(): AgentRole;
