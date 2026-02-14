@@ -1,10 +1,6 @@
 import { OpenAI } from 'openai';
 import { NextResponse } from 'next/server';
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
-
 export async function POST(req: Request) {
     try {
         const { prompt, context } = await req.json();
@@ -12,6 +8,20 @@ export async function POST(req: Request) {
         if (!prompt) {
             return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
         }
+
+        // Instantiate OpenAI client lazily to avoid build-time errors if env var is missing
+        const apiKey = process.env.OPENAI_API_KEY;
+        if (!apiKey) {
+            console.error("OpenAI API Key is missing");
+            return NextResponse.json(
+                { error: 'OpenAI API Configuration Missing' },
+                { status: 500 }
+            );
+        }
+
+        const openai = new OpenAI({
+            apiKey: apiKey,
+        });
 
         const systemPrompt = `You are an expert Python data science assistant. 
     Your task is to generate Python code based on the user's request. 
