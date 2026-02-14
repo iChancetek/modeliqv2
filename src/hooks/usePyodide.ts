@@ -39,72 +39,83 @@ export default function usePyodide() {
                 await pyodideInstance.loadPackage(['micropip', 'pandas', 'numpy', 'scikit-learn', 'matplotlib', 'seaborn']);
 
                 // Auto-Import common libraries and PySpark Shim
-                await pyodideInstance.runPythonAsync(`
-                    import sys
-                    import io
-                    import types
-                    import pandas as pd
-                    import numpy as np
-                    import matplotlib.pyplot as plt
-                    import seaborn as sns
-                    import sklearn
+                try {
+                    await pyodideInstance.runPythonAsync(`
+                        import sys
+                        import io
+                        import types
+                        import pandas as pd
+                        import numpy as np
+                        import matplotlib.pyplot as plt
+                        import seaborn as sns
+                        import sklearn
 
-                    # --- PySpark Shim ---
-                    class SparkSessionShim:
-                        class Builder:
-                            def getOrCreate(self):
-                                return SparkSessionShim()
-                            def appName(self, name):
-                                return self
-                            def master(self, master):
-                                return self
+                        # --- PySpark Shim ---
+                        class SparkSessionShim:
+                            class Builder:
+                                def getOrCreate(self):
+                                    return SparkSessionShim()
+                                def appName(self, name):
+                                    return self
+                                def master(self, master):
+                                    return self
+                                
+                            builder = Builder()
+
+                            def createDataFrame(self, data, schema=None):
+                                if isinstance(data, pd.DataFrame):
+                                    return DataFrameShim(data)
+                                return DataFrameShim(pd.DataFrame(data, columns=schema))
+
+                            def sql(self, query):
+                                print("SQL not fully supported in browser shim yet.")
+                                return DataFrameShim(pd.DataFrame())
+
+                        class DataFrameShim:
+                            def __init__(self, pandas_df):
+                                self._df = pandas_df
+
+                            def show(self, n=20, truncate=True):
+                                print(self._df.head(n))
+
+                            def count(self):
+                                return len(self._df)
+
+                            def select(self, *cols):
+                                return DataFrameShim(self._df[list(cols)])
                             
-                        builder = Builder()
+                            def toPandas(self):
+                                return self._df
+                            
+                            def printSchema(self):
+                                print(self._df.info())
 
-                        def createDataFrame(self, data, schema=None):
-                            if isinstance(data, pd.DataFrame):
-                                return DataFrameShim(data)
-                            return DataFrameShim(pd.DataFrame(data, columns=schema))
-
-                        def sql(self, query):
-                            # Very basic SQL support via duckdb if available, or just error
-                            print("SQL not fully supported in browser shim yet.")
-                            return DataFrameShim(pd.DataFrame())
-
-                    class DataFrameShim:
-                        def __init__(self, pandas_df):
-                            self._df = pandas_df
-
-                        def show(self, n=20, truncate=True):
-                            print(self._df.head(n))
-
-                        def count(self):
-                            return len(self._df)
-
-                        def select(self, *cols):
-                            return DataFrameShim(self._df[list(cols)])
+                        # Register Shim
+                        # 1. Ensure 'pyspark' package exists
+                        pyspark = types.ModuleType("pyspark")
+                        sys.modules["pyspark"] = pyspark
                         
-                        def toPandas(self):
-                            return self._df
+                        # 2. Create 'pyspark.sql' module
+                        pyspark_sql = types.ModuleType("pyspark.sql")
+                        pyspark_sql.SparkSession = SparkSessionShim
                         
-                        def printSchema(self):
-                            print(self._df.info())
-
-                    # Register Shim
-                    pyspark = types.ModuleType("pyspark")
-                    pyspark.sql = types.ModuleType("pyspark.sql")
-                    pyspark.sql.SparkSession = SparkSessionShim
-                    sys.modules["pyspark"] = pyspark
-                    sys.modules["pyspark.sql"] = pyspark.sql
-                    # --------------------
-                    
-                    # Setup standard IO capture
-                    sys.stdout = io.StringIO()
-                    sys.stderr = io.StringIO()
-                    
-                    print("Auto-imported: pandas, numpy, matplotlib, seaborn, sklearn")
-                    print("PySpark Shim loaded: Use 'from pyspark.sql import SparkSession'")
-                `);
+                        # 3. Link them
+                        pyspark.sql = pyspark_sql
+                        sys.modules["pyspark.sql"] = pyspark_sql
+                        
+                        # --------------------
+                        
+                        # Setup standard IO capture (Global initialization)
+                        sys.stdout = io.StringIO()
+                        sys.stderr = io.StringIO()
+                        
+                        print("Auto-imported: pandas, numpy, matplotlib, seaborn, sklearn")
+                        print("PySpark Shim loaded: Use 'from pyspark.sql import SparkSession'")
+                    `);
+                } catch (e: any) {
+                    console.error("Error initializing Pyodide environment:", e);
+                    // We don't block loading, but the user might see errors if they try to use what failed.
+                }
 
                 pyodideRef.current = pyodideInstance;
                 setPyodide(pyodideInstance);
