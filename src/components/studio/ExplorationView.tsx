@@ -5,19 +5,50 @@ import { Button } from '@/components/ui/button';
 import EliteChart, { DataPoint } from '@/components/viz/EliteChart';
 import { BarChart3, ScatterChart, Grid, Loader2, Table as TableIcon, ChevronDown } from 'lucide-react';
 
+// Lifted State types
+export interface ExplorationState {
+    vizType: VizType;
+    selectedColumn: string;
+    selectedX: string;
+    selectedY: string;
+}
+
 interface ExplorationViewProps {
     filename: string;
     columns: string[];
     data: any[]; // Full dataset
+    // Controlled State
+    state?: ExplorationState;
+    onStateChange?: (state: Partial<ExplorationState>) => void;
 }
 
 type VizType = 'dist' | 'corr' | 'scatter' | 'data';
 
-export default function ExplorationView({ filename, columns, data }: ExplorationViewProps) {
-    const [vizType, setVizType] = useState<VizType>('data'); // Default to data view
-    const [selectedColumn, setSelectedColumn] = useState<string>(columns[0] || '');
-    const [selectedX, setSelectedX] = useState<string>(columns[0] || '');
-    const [selectedY, setSelectedY] = useState<string>(columns[1] || columns[0] || '');
+export default function ExplorationView({ filename, columns, data, state, onStateChange }: ExplorationViewProps) {
+    // Internal state fallback if not controlled
+    const [localVizType, setLocalVizType] = useState<VizType>('data');
+    const [localSelectedColumn, setLocalSelectedColumn] = useState<string>(columns[0] || '');
+    const [localSelectedX, setLocalSelectedX] = useState<string>(columns[0] || '');
+    const [localSelectedY, setLocalSelectedY] = useState<string>(columns[1] || columns[0] || '');
+
+    // Resolve effective state
+    const vizType = state?.vizType ?? localVizType;
+    const selectedColumn = state?.selectedColumn ?? localSelectedColumn;
+    const selectedX = state?.selectedX ?? localSelectedX;
+    const selectedY = state?.selectedY ?? localSelectedY;
+
+    // Helper to update state (either prop or local)
+    const updateState = (updates: Partial<ExplorationState>) => {
+        if (onStateChange) {
+            onStateChange(updates);
+        } else {
+            if (updates.vizType) setLocalVizType(updates.vizType);
+            if (updates.selectedColumn) setLocalSelectedColumn(updates.selectedColumn);
+            if (updates.selectedX) setLocalSelectedX(updates.selectedX);
+            if (updates.selectedY) setLocalSelectedY(updates.selectedY);
+        }
+    };
+
     const [loading, setLoading] = useState(false);
     const [chartData, setChartData] = useState<DataPoint[]>([]);
 
@@ -27,9 +58,9 @@ export default function ExplorationView({ filename, columns, data }: Exploration
     useEffect(() => {
         if (!data || data.length === 0) return;
         // Reset valid selections if columns change
-        if (!columns.includes(selectedColumn)) setSelectedColumn(columns[0]);
-        if (!columns.includes(selectedX)) setSelectedX(columns[0]);
-        if (!columns.includes(selectedY)) setSelectedY(columns[1] || columns[0]);
+        if (!columns.includes(selectedColumn)) updateState({ selectedColumn: columns[0] });
+        if (!columns.includes(selectedX)) updateState({ selectedX: columns[0] });
+        if (!columns.includes(selectedY)) updateState({ selectedY: columns[1] || columns[0] });
 
         computeVizData();
     }, [vizType, selectedColumn, selectedX, selectedY, data]);
@@ -130,7 +161,7 @@ export default function ExplorationView({ filename, columns, data }: Exploration
                     <Button
                         variant={vizType === 'data' ? 'default' : 'ghost'}
                         size="sm"
-                        onClick={() => setVizType('data')}
+                        onClick={() => updateState({ vizType: 'data' })}
                         className={vizType === 'data' ? "bg-blue-600 hover:bg-blue-500" : ""}
                     >
                         <TableIcon className="w-4 h-4 mr-2" /> Data Preview
@@ -138,7 +169,7 @@ export default function ExplorationView({ filename, columns, data }: Exploration
                     <Button
                         variant={vizType === 'dist' ? 'default' : 'ghost'}
                         size="sm"
-                        onClick={() => setVizType('dist')}
+                        onClick={() => updateState({ vizType: 'dist' })}
                         className={vizType === 'dist' ? "bg-blue-600 hover:bg-blue-500" : ""}
                     >
                         <BarChart3 className="w-4 h-4 mr-2" /> Distribution
@@ -146,7 +177,7 @@ export default function ExplorationView({ filename, columns, data }: Exploration
                     <Button
                         variant={vizType === 'scatter' ? 'default' : 'ghost'}
                         size="sm"
-                        onClick={() => setVizType('scatter')}
+                        onClick={() => updateState({ vizType: 'scatter' })}
                         className={vizType === 'scatter' ? "bg-blue-600 hover:bg-blue-500" : ""}
                     >
                         <ScatterChart className="w-4 h-4 mr-2" /> Scatter
@@ -154,7 +185,7 @@ export default function ExplorationView({ filename, columns, data }: Exploration
                     <Button
                         variant={vizType === 'corr' ? 'default' : 'ghost'}
                         size="sm"
-                        onClick={() => setVizType('corr')}
+                        onClick={() => updateState({ vizType: 'corr' })}
                         className={vizType === 'corr' ? "bg-blue-600 hover:bg-blue-500" : ""}
                     >
                         <Grid className="w-4 h-4 mr-2" /> Correlation
@@ -166,7 +197,7 @@ export default function ExplorationView({ filename, columns, data }: Exploration
                         <select
                             className="bg-black/40 border border-white/10 rounded-md px-3 py-1 text-sm text-gray-300 focus:outline-none focus:border-blue-500"
                             value={selectedColumn}
-                            onChange={(e) => setSelectedColumn(e.target.value)}
+                            onChange={(e) => updateState({ selectedColumn: e.target.value })}
                         >
                             {columns.map(col => <option key={col} value={col}>{col}</option>)}
                         </select>
@@ -177,7 +208,7 @@ export default function ExplorationView({ filename, columns, data }: Exploration
                             <select
                                 className="bg-black/40 border border-white/10 rounded-md px-3 py-1 text-sm text-gray-300 focus:outline-none focus:border-blue-500"
                                 value={selectedX}
-                                onChange={(e) => setSelectedX(e.target.value)}
+                                onChange={(e) => updateState({ selectedX: e.target.value })}
                             >
                                 {columns.map(col => <option key={col} value={col}>{col}</option>)}
                             </select>
@@ -185,7 +216,7 @@ export default function ExplorationView({ filename, columns, data }: Exploration
                             <select
                                 className="bg-black/40 border border-white/10 rounded-md px-3 py-1 text-sm text-gray-300 focus:outline-none focus:border-blue-500"
                                 value={selectedY}
-                                onChange={(e) => setSelectedY(e.target.value)}
+                                onChange={(e) => updateState({ selectedY: e.target.value })}
                             >
                                 {columns.map(col => <option key={col} value={col}>{col}</option>)}
                             </select>

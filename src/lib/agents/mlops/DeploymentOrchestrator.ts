@@ -185,6 +185,23 @@ export class DeploymentOrchestrator {
 
             const deployData = await deployResponse.json();
 
+            if (!deployData.success) {
+                // Handle Manual Fallback or Failure
+                const logs = deployData.logs || [];
+                if (deployData.manualCommand) {
+                    logs.push(`⚠️ Auto-provisioning require manual intervention.`);
+                    logs.push(`RUN COMMAND: ${deployData.manualCommand}`);
+                }
+
+                await this.updateDeployment(deploymentId, {
+                    status: 'failed', // Mark as failed so UI shows alert
+                    progress: 100, // Process finished
+                    logs: logs,
+                    error: "Auto-provisioning failed. See logs for manual command."
+                });
+                return;
+            }
+
             // Step 4: Mark as active
             await this.updateDeployment(deploymentId, {
                 status: 'active',

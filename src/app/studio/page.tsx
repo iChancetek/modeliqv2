@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { BackButton } from '@/components/ui/back-button';
@@ -18,6 +18,13 @@ export default function StudioPage() {
         name: 'Untitled Project',
         target: '',
         problemType: 'classification'
+    });
+
+    const [explorationState, setExplorationState] = useState<any>({
+        vizType: 'data',
+        selectedColumn: '',
+        selectedX: '',
+        selectedY: ''
     });
 
     const handleAnalysis = (data: any) => {
@@ -46,6 +53,51 @@ export default function StudioPage() {
                 target: potentialTarget,
                 problemType: type
             }));
+        }
+    };
+
+    // Auto-select first columns when data loads
+    useEffect(() => {
+        if (analysisData?.columns?.length > 0) {
+            setExplorationState(prev => ({
+                ...prev,
+                selectedColumn: analysisData.columns[0],
+                selectedX: analysisData.columns[0],
+                selectedY: analysisData.columns[1] || analysisData.columns[0]
+            }));
+        }
+    }, [analysisData]);
+
+
+    const handleInsightClick = (insight: string) => {
+        if (!analysisData?.columns) return;
+
+        // 1. Detect Column Names in Insight Text
+        // Sort by length desc to match longest column names first (e.g. "Age Group" vs "Age")
+        const sortedCols = [...analysisData.columns].sort((a, b) => b.length - a.length);
+        const matchedCol = sortedCols.find(col => insight.includes(col));
+
+        if (matchedCol) {
+            // 2. Determine viz type context
+            let newVizType = 'dist'; // Default to distribution
+            if (insight.toLowerCase().includes('correlation')) newVizType = 'corr';
+            if (insight.toLowerCase().includes('scatter') || insight.toLowerCase().includes('relationship')) newVizType = 'scatter';
+
+            // 3. Update State
+            setExplorationState(prev => ({
+                ...prev,
+                vizType: newVizType,
+                selectedColumn: matchedCol,
+                // If scatter, try to find another col or just set X
+                selectedX: matchedCol,
+                selectedY: prev.selectedY === matchedCol ? prev.selectedX : prev.selectedY // Swap if collision
+            }));
+
+            // 4. Scroll to View
+            const element = document.getElementById('exploration-view');
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         }
     };
 
@@ -135,13 +187,17 @@ export default function StudioPage() {
                         {/* AI Insights Display */}
                         {insights && (
                             <div className="animate-in slide-in-from-bottom-5">
-                                <InsightCard insights={insights} loading={false} />
+                                <InsightCard
+                                    insights={insights}
+                                    loading={false}
+                                    onInsightClick={handleInsightClick}
+                                />
                             </div>
                         )}
 
                         {/* Exploration View */}
                         {analysisData && (
-                            <section className="glass-panel p-6 rounded-3xl border-t border-white/10">
+                            <section id="exploration-view" className="glass-panel p-6 rounded-3xl border-t border-white/10 scroll-mt-24">
                                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                                     <BarChart3 className="text-emerald-500" /> Interactive Exploration
                                 </h3>
@@ -149,6 +205,8 @@ export default function StudioPage() {
                                     filename={analysisData.filename}
                                     columns={analysisData.columns}
                                     data={analysisData.data}
+                                    state={explorationState}
+                                    onStateChange={(updates) => setExplorationState((prev: any) => ({ ...prev, ...updates }))}
                                 />
                             </section>
                         )}
