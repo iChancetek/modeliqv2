@@ -151,7 +151,8 @@ export function ModelDevelopmentStep() {
             format: file.name.endsWith('.onnx') ? 'onnx' : 'sklearn',
             sizeBytes: file.size,
             uploadedAt: new Date(),
-            metrics: { accuracy: 0.85 + Math.random() * 0.1 } // Simulate initial eval
+            metrics: { accuracy: 0.85 + Math.random() * 0.1 }, // Simulate initial eval
+            file: file
         });
     };
 

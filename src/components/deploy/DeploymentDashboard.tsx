@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Server, Activity, GitBranch, RefreshCw, ShieldCheck, Box, ArrowLeft, Target, Database, Code, Home, MonitorCheck } from 'lucide-react';
+import { Server, Activity, GitBranch, RefreshCw, ShieldCheck, Box, ArrowLeft, Target, Database, Code, Home, MonitorCheck, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import DeploymentConfig from './DeploymentConfig';
@@ -13,6 +13,7 @@ import RetrainingTrigger from './RetrainingTrigger';
 import { useSearchParams } from 'next/navigation';
 import { MLOpsProvider, useMLOps } from './MLOpsContext';
 import { ProblemDefinitionStep, DataEngineeringStep, ModelDevelopmentStep } from './LifecycleSteps';
+import { InferencePanel } from './InferencePanel';
 
 import ModelRegistry from './ModelRegistry';
 
@@ -22,9 +23,10 @@ const TABS = [
     { id: 'develop', label: '3. Develop', icon: Code },
     { id: 'validate', label: '4. Validate', icon: ShieldCheck },
     { id: 'deploy', label: '5. Deploy', icon: Box },
-    { id: 'registry', label: '6. Registry', icon: Server }, // New Tab
-    { id: 'monitor', label: '7. Monitor', icon: Activity },
-    { id: 'retrain', label: '8. Retrain', icon: RefreshCw },
+    { id: 'test', label: '6. Test', icon: Play }, // New Tab
+    { id: 'registry', label: '7. Registry', icon: Server },
+    { id: 'monitor', label: '8. Monitor', icon: Activity },
+    { id: 'retrain', label: '9. Retrain', icon: RefreshCw },
 ];
 
 export default function DeploymentDashboard() {
@@ -127,6 +129,7 @@ function DashboardContent() {
                     {activeTab === 'develop' && <ModelDevelopmentStep />}
                     {activeTab === 'validate' && <ValidationGate status={status} />}
                     {activeTab === 'deploy' && <DeploymentConfig />}
+                    {activeTab === 'test' && <InferencePanel />}
                     {activeTab === 'registry' && <ModelRegistry />}
                     {activeTab === 'monitor' && <SentinelDashboard />}
                     {activeTab === 'retrain' && <RetrainingTrigger />}

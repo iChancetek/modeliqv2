@@ -24,6 +24,7 @@ export interface ModelArtifact {
     sizeBytes: number;
     uploadedAt: Date;
     metrics: Record<string, number>; // e.g., { accuracy: 0.95 }
+    file?: File;
 }
 
 export interface MonitoringMetric {
