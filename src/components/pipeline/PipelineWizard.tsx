@@ -28,6 +28,7 @@ export default function PipelineWizard() {
     const [pipelineSteps, setPipelineSteps] = useState<any[]>([]);
 
     // State
+    const [projectName, setProjectName] = useState('Untitled Project');
     const [filename, setFilename] = useState('');
     const [loading, setLoading] = useState(false);
     const [dataPreview, setDataPreview] = useState<any[]>([]);
@@ -134,6 +135,14 @@ export default function PipelineWizard() {
                 return (
                     <div className="space-y-6">
                         <h2 className="text-2xl font-bold mb-4">1. Project Configuration</h2>
+                        <div className="space-y-4 mb-6">
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-2">Project Name</label>
+                                <input className="w-full bg-black/30 border border-gray-700 rounded p-3 text-white focus:border-accent outline-none"
+                                    value={projectName} onChange={e => setProjectName(e.target.value)} placeholder="e.g., Titanic Survival Prediction" />
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-sm text-gray-400 mb-2">Dataset Filename (from Uploads)</label>
@@ -662,6 +671,31 @@ joblib.dump(model, 'model.joblib')
 
                 {/* Data Preview Sidebar */}
                 <div className="space-y-6">
+                    {/* Project Config Card */}
+                    <div className="glass-panel p-6 border-l-4 border-l-blue-500">
+                        <h3 className="font-bold mb-4 flex items-center gap-2 text-blue-400">
+                            <Binary className="w-4 h-4" /> Project Configuration
+                        </h3>
+                        <div className="space-y-4 text-sm">
+                            <div>
+                                <div className="text-gray-500 mb-1">Project Name</div>
+                                <div className="font-medium text-white text-lg">{projectName}</div>
+                            </div>
+                            <div>
+                                <div className="text-gray-500 mb-1">Target Column</div>
+                                <div className="font-mono text-accent">
+                                    {targetCol || <span className="text-gray-600 italic">Upload data first...</span>}
+                                </div>
+                            </div>
+                            <div>
+                                <div className="text-gray-500 mb-1">Problem Type</div>
+                                <div className="font-mono text-purple-400">
+                                    {problemType.charAt(0).toUpperCase() + problemType.slice(1)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="glass-panel p-6 sticky top-8">
                         <h3 className="font-bold mb-4 flex items-center gap-2 text-emerald-400">
                             <Binary className="w-4 h-4" /> Live Data Preview
