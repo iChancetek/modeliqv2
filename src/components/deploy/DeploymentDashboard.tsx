@@ -13,14 +13,17 @@ import RetrainingTrigger from './RetrainingTrigger';
 import { MLOpsProvider, useMLOps } from './MLOpsContext';
 import { ProblemDefinitionStep, DataEngineeringStep, ModelDevelopmentStep } from './LifecycleSteps';
 
+import ModelRegistry from './ModelRegistry';
+
 const TABS = [
     { id: 'define', label: '1. Define', icon: Target },
     { id: 'data', label: '2. Data', icon: Database },
     { id: 'develop', label: '3. Develop', icon: Code },
     { id: 'validate', label: '4. Validate', icon: ShieldCheck },
     { id: 'deploy', label: '5. Deploy', icon: Box },
-    { id: 'monitor', label: '6. Monitor', icon: Activity },
-    { id: 'retrain', label: '7. Retrain', icon: RefreshCw },
+    { id: 'registry', label: '6. Registry', icon: Server }, // New Tab
+    { id: 'monitor', label: '7. Monitor', icon: Activity },
+    { id: 'retrain', label: '8. Retrain', icon: RefreshCw },
 ];
 
 export default function DeploymentDashboard() {
@@ -91,6 +94,7 @@ function DashboardContent() {
                     {activeTab === 'develop' && <ModelDevelopmentStep />}
                     {activeTab === 'validate' && <ValidationGate status={status} />}
                     {activeTab === 'deploy' && <DeploymentConfig />}
+                    {activeTab === 'registry' && <ModelRegistry />}
                     {activeTab === 'monitor' && <SentinelDashboard />}
                     {activeTab === 'retrain' && <RetrainingTrigger />}
                 </div>

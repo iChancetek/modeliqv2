@@ -358,9 +358,9 @@ export default function PipelineWizard() {
                         <div className="flex justify-center gap-4 mt-8">
                             <Button variant="outline" onClick={() => router.push('/studio')}>Back to Studio</Button>
                             <Button onClick={() => {
-                                if (modelId) router.push(`/deploy?model_id=${modelId}`);
+                                if (modelId) router.push(`/studio/deploy?model_id=${modelId}`);
                             }}>
-                                Test Model (Inference)
+                                Deploy & Monitor Model
                             </Button>
                         </div>
                     </div>
