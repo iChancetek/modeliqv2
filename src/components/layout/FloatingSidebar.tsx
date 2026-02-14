@@ -19,7 +19,7 @@ import { logout } from '@/lib/firebase/auth';
 
 const menuItems = [
     { icon: LayoutDashboard, label: "Overview", href: "/studio" },
-    { icon: Cloud, label: "Deployments", href: "/deploy" },
+    { icon: Cloud, label: "MLOps Deploy", href: "/studio/deploy" },
     { icon: BarChart3, label: "Reports", href: "/reports" },
     { icon: FileText, label: "Notebooks", href: "/notebooks" },
     { icon: Settings, label: "Settings", href: "/settings" },

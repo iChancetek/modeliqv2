@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Server, Activity, GitBranch, RefreshCw, ShieldCheck, Box } from 'lucide-react';
+import { Server, Activity, GitBranch, RefreshCw, ShieldCheck, Box, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 // Placeholder components - will be implemented individually next
@@ -24,11 +25,18 @@ export default function DeploymentDashboard() {
     return (
         <div className="w-full h-full p-6 space-y-6">
             <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
-                        GenAI MLOps Engine
-                    </h1>
-                    <p className="text-muted-foreground text-sm">Autonomous Deployment & Monitoring Lifecycle</p>
+                <div className="flex items-center gap-4">
+                    <Link href="/studio">
+                        <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10">
+                            <ArrowLeft className="w-5 h-5" />
+                        </Button>
+                    </Link>
+                    <div>
+                        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
+                            GenAI MLOps Engine
+                        </h1>
+                        <p className="text-muted-foreground text-sm">Autonomous Deployment & Monitoring Lifecycle</p>
+                    </div>
                 </div>
                 <div className="flex gap-2">
                     <span className="px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-mono border border-green-500/30">
