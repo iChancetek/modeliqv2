@@ -3,33 +3,44 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Server, Activity, GitBranch, RefreshCw, ShieldCheck, Box, ArrowLeft } from 'lucide-react';
+import { Server, Activity, GitBranch, RefreshCw, ShieldCheck, Box, ArrowLeft, Target, Database, Code, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import DeploymentConfig from './DeploymentConfig';
 
 // Placeholder components - will be implemented individually next
-const ValidationGate = () => <div className="p-4 text-gray-400">Validation Gate: Checking Model Metrics against SLA...</div>;
-const DriftMonitor = () => <div className="p-4 text-gray-400">Drift Monitor: Tracking Prediction Latency & Data Drift...</div>;
-const RetrainingTrigger = () => <div className="p-4 text-gray-400">Retraining: Auto-trigger configuration...</div>;
+const ProblemDefinition = () => <div className="p-4 text-gray-400">Step 1: Problem Definition & Metrics (Managed in Studio)</div>;
+const DataEngineering = () => <div className="p-4 text-gray-400">Step 2: Data Collection & Preparation (Managed in Studio)</div>;
+const ModelDevelopment = () => <div className="p-4 text-gray-400">Step 3: Model Training & Experimentation (Managed in Studio)</div>;
+const ValidationGate = () => <div className="p-4 text-gray-400">Step 4: Validation Gate: Checking Model Metrics against SLA...</div>;
+const DriftMonitor = () => <div className="p-4 text-gray-400">Step 6: Drift Monitor: Tracking Prediction Latency & Data Drift...</div>;
+const RetrainingTrigger = () => <div className="p-4 text-gray-400">Step 7: Retraining: Auto-trigger configuration...</div>;
 
 const TABS = [
+    { id: 'define', label: '1. Define', icon: Target },
+    { id: 'data', label: '2. Data', icon: Database },
+    { id: 'develop', label: '3. Develop', icon: Code },
     { id: 'validate', label: '4. Validate', icon: ShieldCheck },
-    { id: 'deploy', label: '5. Deploy (CI/CD)', icon: Box },
+    { id: 'deploy', label: '5. Deploy', icon: Box },
     { id: 'monitor', label: '6. Monitor', icon: Activity },
     { id: 'retrain', label: '7. Retrain', icon: RefreshCw },
 ];
 
 export default function DeploymentDashboard() {
-    const [activeTab, setActiveTab] = useState('validate');
+    const [activeTab, setActiveTab] = useState('deploy'); // Default to Deploy since 1-3 are usually done
 
     return (
         <div className="w-full h-full p-6 space-y-6">
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
                     <Link href="/studio">
-                        <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10">
+                        <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10" title="Back to Studio">
                             <ArrowLeft className="w-5 h-5" />
+                        </Button>
+                    </Link>
+                    <Link href="/">
+                        <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10" title="Home">
+                            <Home className="w-5 h-5" />
                         </Button>
                     </Link>
                     <div>
@@ -47,12 +58,12 @@ export default function DeploymentDashboard() {
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex gap-2 border-b border-white/10 pb-1">
+            <div className="flex gap-2 border-b border-white/10 pb-1 overflow-x-auto">
                 {TABS.map((tab) => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-t-lg transition-colors relative ${activeTab === tab.id ? 'text-white bg-white/5' : 'text-gray-500 hover:text-gray-300'
+                        className={`flex items-center gap-2 px-4 py-2 rounded-t-lg transition-colors relative whitespace-nowrap ${activeTab === tab.id ? 'text-white bg-white/5' : 'text-gray-500 hover:text-gray-300'
                             }`}
                     >
                         <tab.icon className="w-4 h-4" />
@@ -70,6 +81,9 @@ export default function DeploymentDashboard() {
             {/* Content Area */}
             <div className="glass-panel rounded-xl p-1 min-h-[400px]">
                 <div className="bg-black/40 rounded-lg p-6 h-full">
+                    {activeTab === 'define' && <ProblemDefinition />}
+                    {activeTab === 'data' && <DataEngineering />}
+                    {activeTab === 'develop' && <ModelDevelopment />}
                     {activeTab === 'validate' && <ValidationGate />}
                     {activeTab === 'deploy' && <DeploymentConfig />}
                     {activeTab === 'monitor' && <DriftMonitor />}
