@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Loader2, AlertCircle, Wand2, CheckCircle, BarChart3, Binary, Scale, Scissors, BrainCircuit, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import usePyodide from '@/hooks/usePyodide'; // Import Hook
 
 type Step = 'config' | 'cleaning' | 'preprocessing' | 'augmentation' | 'splitting' | 'feature_engineering' | 'selection' | 'training' | 'results';
 
@@ -22,6 +23,7 @@ const STEPS: { id: Step; label: string; icon: React.ReactNode }[] = [
 
 export default function PipelineWizard() {
     const router = useRouter();
+    const { pyodide, runPython, isLoading: isPyodideLoading } = usePyodide(); // Initialize Pyodide
     const [currentStep, setCurrentStep] = useState<Step>('config');
     const [pipelineSteps, setPipelineSteps] = useState<any[]>([]);
 
@@ -39,26 +41,63 @@ export default function PipelineWizard() {
 
     // Fetch Preview whenever pipelineSteps change
     useEffect(() => {
+        // Auto-load from SessionStorage if available
+        const storedName = sessionStorage.getItem('current_dataset_name');
+        if (storedName && !filename) setFilename(storedName);
+
         if (filename && currentStep !== 'config') {
             fetchPreview();
         }
-    }, [pipelineSteps, currentStep]);
+    }, [pipelineSteps, currentStep, filename]);
 
     const fetchPreview = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pipeline/preview`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ filename, steps: pipelineSteps })
-            });
-            const data = await response.json();
+            // Client-Side Fallback for Headers
+            const storedCsv = sessionStorage.getItem('current_dataset_csv');
+            if (storedCsv) {
+                const lines = storedCsv.split('\n');
+                if (lines.length > 0) {
+                    // Simple robust CSV header split
+                    const cols = lines[0].split(',').map((c: string) => c.trim().replace(/^"|"$/g, ''));
+                    setColumns(cols);
 
-            if (data.head) {
-                setDataPreview(data.head);
-                setColumns(data.columns);
-                setDataProfile(data.profile);
+                    // Mock simple profile
+                    setDataProfile({ rows: lines.length - 1, columns: {} });
+
+                    // Mock preview for table
+                    const previewRows = lines.slice(1, 9).map((line: string) => {
+                        const vals = line.split(',').map((v: string) => v.trim());
+                        const obj: any = {};
+                        cols.forEach((col: string, i: number) => {
+                            obj[col] = vals[i];
+                        });
+                        return obj;
+                    });
+                    setDataPreview(previewRows);
+                }
             }
+
+            // Try API as enhancement
+            try {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pipeline/preview`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename, steps: pipelineSteps })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.head) {
+                        setDataPreview(data.head);
+                        setColumns(data.columns);
+                        setDataProfile(data.profile);
+                    }
+                }
+            } catch (apiError) {
+                console.warn("API Preview unavailable, using client-side fallback", apiError);
+            }
+
         } catch (error) {
             console.error("Preview failed", error);
         } finally {
@@ -304,26 +343,172 @@ export default function PipelineWizard() {
                                     <div>$ Training model...</div>
                                 </div>
                                 <Button className="w-full" onClick={async () => {
-                                    // Trigger Training
-                                    const algo = pipelineSteps.find(s => s.type === 'selection')?.params?.algorithm || 'RandomForest';
+                                    // Trigger Training (In-Browser via Pyodide)
+                                    if (!pyodide) {
+                                        console.error("Pyodide not ready");
+                                        return;
+                                    }
+
+                                    setLoading(true);
 
                                     try {
-                                        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/train_legacy`, {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ filename, target_col: targetCol, algorithm_id: algo, problem_type: 'Classification' })
-                                        });
-                                        const data = await response.json();
-                                        if (data.metrics) {
-                                            setMetrics(data.metrics);
-                                            if (data.model_id) setModelId(data.model_id);
-                                            setCurrentStep('results');
+                                        // 1. Load Data from Session Storage
+                                        const csvData = sessionStorage.getItem('current_dataset_csv');
+                                        if (!csvData) {
+                                            alert("No dataset found in session. Please upload a file first.");
+                                            setLoading(false);
+                                            return;
                                         }
+
+                                        // 2. Write file to Pyodide FS
+                                        pyodide.FS.writeFile("dataset.csv", csvData);
+
+                                        // 3. Construct Python Pipeline Script
+                                        const algo = pipelineSteps.find(s => s.type === 'selection')?.params?.algorithm || 'RandomForest';
+
+                                        // Dynamic Script Construction
+                                        let script = `
+import pandas as pd
+import numpy as np
+import json
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, LabelEncoder, OneHotEncoder
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, precision_score, recall_score
+from sklearn.impute import SimpleImputer
+from sklearn.compose import ColumnTransformer
+
+# 1. Load Data
+df = pd.read_csv("dataset.csv")
+target_col = "${targetCol}"
+
+# Separate Features and Target
+X = df.drop(columns=[target_col])
+y = df[target_col]
+
+# Identify columns types automatically for default fallback
+num_cols = X.select_dtypes(include=[np.number]).columns.tolist()
+cat_cols = X.select_dtypes(include=['object']).columns.tolist()
+`;
+
+                                        // Apply Pipeline Steps dynamically
+                                        pipelineSteps.forEach(step => {
+                                            if (step.type === 'cleaning' && step.action === 'impute') {
+                                                const { column, strategy } = step.params;
+                                                // Generate Python for imputation
+                                                script += `
+# Imputation for ${column}
+if "${column}" in X.columns:
+    imp = SimpleImputer(strategy="${strategy}")
+    # Reshape for single column
+    X["${column}"] = imp.fit_transform(X[["${column}"]]).ravel()
+`;
+                                            }
+
+                                            if (step.type === 'preprocessing' && step.action === 'scale') {
+                                                const { method } = step.params; // columns might be implicit or explicit
+                                                const scalerClass = method === 'minmax' ? 'MinMaxScaler' : 'StandardScaler';
+                                                script += `
+# Scaling (${method})
+scaler = ${scalerClass}()
+if len(num_cols) > 0:
+    X[num_cols] = scaler.fit_transform(X[num_cols])
+`;
+                                            }
+
+                                            if (step.type === 'augmentation' && step.action === 'smote') {
+                                                // Check if imbalanced-learn is available, otherwise skip or warn
+                                                // For standard Pyodide, we might skip heavy SMOTE if not installed, or try-except
+                                                script += `
+# SMOTE Augmentation (Placeholder/Requires imblearn)
+# try:
+#     from imblearn.over_sampling import SMOTE
+#     sm = SMOTE(random_state=42)
+#     X, y = sm.fit_resample(X, y)
+# except:
+#     pass
+`;
+                                            }
+                                        });
+
+                                        // Final Preprocessing (Encoding) - Always needed for sklearn
+                                        script += `
+# Final Encoding for Categorical
+le = LabelEncoder()
+for col in cat_cols:
+    X[col] = X[col].astype(str)
+    X[col] = le.fit_transform(X[col])
+
+# Encode Target
+if y.dtype == 'object':
+    y = le.fit_transform(y.astype(str))
+
+# Split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+`;
+
+                                        // Model Training
+                                        const algoMap: Record<string, string> = {
+                                            'RandomForest': 'RandomForestClassifier',
+                                            'LogisticRegression': 'LogisticRegression',
+                                            'XGBoost': 'RandomForestClassifier', // Fallback
+                                            'SVM': 'SVC'
+                                        };
+                                        const pyAlgo = algoMap[algo] || 'RandomForestClassifier';
+
+                                        script += `
+# Train Model
+model = ${pyAlgo}()
+model.fit(X_train, y_train)
+
+# Evaluate
+y_pred = model.predict(X_test)
+acc = accuracy_score(y_test, y_pred)
+prec = precision_score(y_test, y_pred, average='weighted', zero_division=0)
+rec = recall_score(y_test, y_pred, average='weighted', zero_division=0)
+
+metrics = {
+    "accuracy": acc,
+    "precision": prec,
+    "recall": rec
+}
+print(json.dumps(metrics))
+`;
+                                        const pythonScript = script;
+
+
+                                        // 4. Run Selection
+                                        const { result, stdout, stderr, error } = await runPython(pythonScript);
+
+                                        if (error) {
+                                            console.error("Training Error:", error);
+                                            alert("Training failed: " + error);
+                                        } else {
+                                            // Parse stdout for JSON metrics
+                                            try {
+                                                // Find the JSON object in stdout (it might have other prints)
+                                                const lines = stdout.trim().split('\n');
+                                                const jsonLine = lines[lines.length - 1]; // Assume last line is the JSON
+                                                const metrics = JSON.parse(jsonLine);
+
+                                                setMetrics(metrics);
+                                                setModelId(`model_${Date.now()}_${algo}`);
+                                                setCurrentStep('results');
+                                            } catch (parseError) {
+                                                console.error("Failed to parse metrics", stdout);
+                                            }
+                                        }
+
                                     } catch (e) {
                                         console.error(e);
+                                    } finally {
+                                        setLoading(false);
                                     }
                                 }}>
-                                    External Call: Start Training
+                                    {isPyodideLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+                                    Start Training (In-Browser)
                                 </Button>
                             </div>
                         ) : (

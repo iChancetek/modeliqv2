@@ -29,6 +29,16 @@ export default function SmartUpload({ onAnalysisComplete }: SmartUploadProps) {
 
         // Parse CSV Locally
         if (selectedFile.type === 'text/csv' || selectedFile.name.endsWith('.csv')) {
+
+            // Save to SessionStorage for Pipeline usage
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target?.result as string;
+                sessionStorage.setItem('current_dataset_csv', text);
+                sessionStorage.setItem('current_dataset_name', selectedFile.name);
+            };
+            reader.readAsText(selectedFile);
+
             Papa.parse(selectedFile, {
                 header: true,
                 skipEmptyLines: true,
