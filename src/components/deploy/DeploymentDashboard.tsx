@@ -10,6 +10,7 @@ import DeploymentConfig from './DeploymentConfig';
 import ValidationGate from './ValidationGate';
 import SentinelDashboard from '../sentinel/SentinelDashboard';
 import RetrainingTrigger from './RetrainingTrigger';
+import { useSearchParams } from 'next/navigation';
 import { MLOpsProvider, useMLOps } from './MLOpsContext';
 import { ProblemDefinitionStep, DataEngineeringStep, ModelDevelopmentStep } from './LifecycleSteps';
 
@@ -33,9 +34,6 @@ export default function DeploymentDashboard() {
         </MLOpsProvider>
     );
 }
-
-import { useSearchParams } from 'next/navigation';
-import { useMLOps } from './MLOpsContext';
 
 function DashboardContent() {
     const searchParams = useSearchParams();

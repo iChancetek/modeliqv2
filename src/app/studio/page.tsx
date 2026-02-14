@@ -59,7 +59,7 @@ export default function StudioPage() {
     // Auto-select first columns when data loads
     useEffect(() => {
         if (analysisData?.columns?.length > 0) {
-            setExplorationState(prev => ({
+            setExplorationState((prev: any) => ({
                 ...prev,
                 selectedColumn: analysisData.columns[0],
                 selectedX: analysisData.columns[0],
@@ -84,7 +84,7 @@ export default function StudioPage() {
             if (insight.toLowerCase().includes('scatter') || insight.toLowerCase().includes('relationship')) newVizType = 'scatter';
 
             // 3. Update State
-            setExplorationState(prev => ({
+            setExplorationState((prev: any) => ({
                 ...prev,
                 vizType: newVizType,
                 selectedColumn: matchedCol,
