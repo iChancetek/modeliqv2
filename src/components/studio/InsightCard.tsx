@@ -1,3 +1,4 @@
+```javascript
 "use client";
 
 import { motion } from "framer-motion";
@@ -6,9 +7,10 @@ import { Lightbulb, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
 interface InsightCardProps {
     insights: string[];
     loading: boolean;
+    onInsightClick?: (insight: string) => void;
 }
 
-export default function InsightCard({ insights, loading }: InsightCardProps) {
+export default function InsightCard({ insights, loading, onInsightClick }: InsightCardProps) {
     return (
         <div className="glass-panel p-6 border-l-4 border-l-purple-500 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-10">
@@ -33,7 +35,8 @@ export default function InsightCard({ insights, loading }: InsightCardProps) {
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: i * 0.1 }}
-                                className="flex items-start gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                                className={`flex items - start gap - 3 p - 3 rounded - lg bg - white / 5 transition - colors ${ onInsightClick ? 'cursor-pointer hover:bg-white/10' : '' } `}
+                                onClick={() => onInsightClick && onInsightClick(insight)}
                             >
                                 <div className="mt-1">
                                     {insight.toLowerCase().includes("warning") ? (

@@ -9,8 +9,8 @@ import { Loader2, CheckCircle2, Play, ChevronRight, BrainCircuit, Wand2 } from '
 
 // Pipeline Stages
 const STAGES = [
-    { id: 'define', title: '1. Define Problem', description: 'Objective & Target Variable' },
-    { id: 'collect', title: '2. Collect Data', description: 'Upload & Load CSV' },
+    { id: 'collect', title: '1. Collect Data', description: 'Upload & Load CSV' },
+    { id: 'define', title: '2. Define Problem', description: 'Objective & Target Variable' },
     { id: 'preprocess', title: '3. Preprocess', description: 'Clean, Encode & Split' },
     { id: 'train', title: '4. Train Model', description: 'Select Algorithm & Fit' },
     { id: 'evaluate', title: '5. Evaluate', description: 'Metrics & Visualization' },
@@ -34,7 +34,7 @@ export default function PipelinePage() {
 
     // --- GenAI Helper ---
     const generateStageCode = async () => {
-        if (!dataset && currentStage > 1) return alert("Please upload data first.");
+        if (!dataset && currentStage > 0) return alert("Please upload data first."); // Allow step 0 upload now
         setIsGenerating(true);
 
         const stageName = STAGES[currentStage].id;
@@ -52,6 +52,7 @@ export default function PipelinePage() {
         if (stageName === 'define') {
             prompt = `Analyzing columns: ${dataset?.columns?.join(', ')}. Suggest problem type (classification/regression) and likely target column. Return code to set variables 'problem_type' and 'target_col'.`;
         } else if (stageName === 'collect') {
+            // Step 1: Collect Data (GenAI not really needed here, manual upload, but keep placeholder)
             prompt = `Assume 'file_content' is available. Write pandas code to load it into 'df' and print head/info.`;
         } else if (stageName === 'preprocess') {
             prompt = `Write code to handle missing values, encode categoricals, and split 'df' into X_train, X_test, y_train, y_test. Target is '${pipelineState.targetColumn}'.`;
@@ -81,8 +82,8 @@ export default function PipelinePage() {
 
     // --- Auto-GenAI Trigger ---
     useEffect(() => {
-        // Auto-generate code when entering a new stage (skip stage 0/1 which are manual setup/upload)
-        if (currentStage > 1 && !generatedCode && !isGenerating) {
+        // Auto-generate code when entering a new stage (skip stage 0 which is manual upload)
+        if (currentStage > 0 && !generatedCode && !isGenerating) {
             generateStageCode();
         }
     }, [currentStage]);
@@ -91,12 +92,12 @@ export default function PipelinePage() {
     const executeStage = async () => {
         setIsExecuting(true);
         try {
-            // Special handling for Step 2 (Upload) -> In reality, we'd pass the file buffer to Pyodide
+            // Special handling for Step 1 (Upload) -> In reality, we'd pass the file buffer to Pyodide
             // For this demo, we assume the 'df' is already loaded via the Notebook context or similar.
             // We'll simulate the "Load" by injecting the parsed JSON data from SmartUpload directly.
 
-            if (currentStage === 1 && dataset?.preview) {
-                // Inject data directly for Step 2
+            if (currentStage === 0 && dataset?.data) { // Modified for Step 0 (Collect)
+                // Inject data directly for Step 1
                 await runPython(`
                     import pandas as pd
                     data = ${JSON.stringify(dataset.data.slice(0, 100))} # Inject sample for speed, normally full data
@@ -175,9 +176,43 @@ export default function PipelinePage() {
 
                     {/* Stage Specific UI */}
                     <div className="flex-1">
-                        {currentStage === 0 && (
+                        {currentStage === 0 && ( // COLLECT DATA (Step 1)
+                            <div className="space-y-6">
+                                <SmartUpload onAnalysisComplete={(res) => {
+                                    setDataset(res);
+                                    // Auto-Fill Problem Definition Logic
+                                    if (res.columns && res.columns.length > 0) {
+                                        const target = res.columns[res.columns.length - 1]; // Guess last col
+
+                                        // Simple heuristic
+                                        let type = 'classification';
+                                        if (res.data) {
+                                            const uniqueValues = new Set(res.data.slice(0, 100).map((r: any) => r[target])).size;
+                                            if (uniqueValues >= 20) type = 'regression';
+                                        }
+
+                                        setPipelineState(p => ({
+                                            ...p,
+                                            targetColumn: target,
+                                            problemType: type
+                                        }));
+                                    }
+                                }} />
+                                {dataset && (
+                                    <div className="p-4 bg-green-900/20 border border-green-500/30 rounded-lg animate-in fade-in zoom-in">
+                                        <p className="font-bold text-green-400">Dataset Loaded: {dataset.filename}</p>
+                                        <p className="text-sm opacity-70">{dataset.rowCount} rows, {dataset.columns?.length} columns</p>
+                                        <p className="text-sm mt-2 text-primary">
+                                            AI Suggestion: Target seems to be <strong>{pipelineState.targetColumn}</strong> ({pipelineState.problemType})
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {currentStage === 1 && ( // DEFINE PROBLEM (Step 2)
                             <div className="space-y-4 max-w-md">
-                                <p>Describe your objective or upload data to auto-detect.</p>
+                                <p>Review AI-detected objective based on uploaded data.</p>
                                 <div className="grid grid-cols-2 gap-4">
                                     <Button
                                         variant={pipelineState.problemType === 'classification' ? 'default' : 'outline'}
@@ -197,27 +232,9 @@ export default function PipelinePage() {
                                     value={pipelineState.targetColumn}
                                     onChange={e => setPipelineState(p => ({ ...p, targetColumn: e.target.value }))}
                                 />
-                                <Button onClick={() => setCurrentStage(1)} className="w-full">
-                                    Next: Upload Data <ChevronRight className="w-4 h-4 ml-2" />
+                                <Button onClick={() => setCurrentStage(2)} className="w-full">
+                                    Next: Preprocess Data <ChevronRight className="w-4 h-4 ml-2" />
                                 </Button>
-                            </div>
-                        )}
-
-                        {currentStage === 1 && (
-                            <div className="space-y-6">
-                                <SmartUpload onAnalysisComplete={(res) => {
-                                    setDataset(res);
-                                    // Auto-advance or allow user to review
-                                    if (res.columns) {
-                                        setPipelineState(p => ({ ...p, targetColumn: res.columns[res.columns.length - 1] })); // Guess last col
-                                    }
-                                }} />
-                                {dataset && (
-                                    <div className="p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
-                                        <p className="font-bold text-green-400">Dataset Loaded: {dataset.filename}</p>
-                                        <p className="text-sm opacity-70">{dataset.rowCount} rows, {dataset.columns?.length} columns</p>
-                                    </div>
-                                )}
                             </div>
                         )}
 
@@ -267,9 +284,15 @@ export default function PipelinePage() {
                                 )}
                             </Button>
                         )}
-                        {currentStage === 1 && dataset && (
+                        {currentStage === 0 && dataset && (
                             <Button onClick={executeStage}>
                                 Confirm Data & Proceed <ChevronRight className="w-4 h-4 ml-2" />
+                            </Button>
+                        )}
+                        {/* Define Step doesn't need Execute, just Next */}
+                        {currentStage === 1 && (
+                            <Button onClick={() => setCurrentStage(2)}>
+                                Confirm Config <ChevronRight className="w-4 h-4 ml-2" />
                             </Button>
                         )}
                     </div>
