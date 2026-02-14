@@ -7,14 +7,14 @@ import { Server, Activity, GitBranch, RefreshCw, ShieldCheck, Box, ArrowLeft, Ta
 import { Button } from '@/components/ui/button';
 
 import DeploymentConfig from './DeploymentConfig';
+import ValidationGate from './ValidationGate';
+import DriftMonitor from './DriftMonitor';
+import RetrainingTrigger from './RetrainingTrigger';
 
 // Placeholder components - will be implemented individually next
 const ProblemDefinition = () => <div className="p-4 text-gray-400">Step 1: Problem Definition & Metrics (Managed in Studio)</div>;
 const DataEngineering = () => <div className="p-4 text-gray-400">Step 2: Data Collection & Preparation (Managed in Studio)</div>;
 const ModelDevelopment = () => <div className="p-4 text-gray-400">Step 3: Model Training & Experimentation (Managed in Studio)</div>;
-const ValidationGate = () => <div className="p-4 text-gray-400">Step 4: Validation Gate: Checking Model Metrics against SLA...</div>;
-const DriftMonitor = () => <div className="p-4 text-gray-400">Step 6: Drift Monitor: Tracking Prediction Latency & Data Drift...</div>;
-const RetrainingTrigger = () => <div className="p-4 text-gray-400">Step 7: Retraining: Auto-trigger configuration...</div>;
 
 const TABS = [
     { id: 'define', label: '1. Define', icon: Target },
