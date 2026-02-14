@@ -13,8 +13,9 @@ export interface DeploymentRequest {
     modelName: string;
     modelFile: File;
     framework: 'sklearn' | 'tensorflow' | 'pytorch' | 'xgboost';
-    cloudProvider: 'gcp' | 'aws' | 'azure';
-    computeStrategy: 'serverless' | 'kubernetes' | 'vm';
+    cloudProvider?: 'gcp' | 'aws' | 'azure';
+    computeStrategy?: 'serverless' | 'kubernetes' | 'vm';
+    hostingTarget: 'modeliq' | 'external';
 }
 
 export interface DeploymentStatus {
@@ -29,6 +30,7 @@ export interface DeploymentStatus {
 export class DeploymentOrchestrator {
     private packagingAgent = new PackagingAgent();
     private infraAgent = new InfraAgent();
+    private validatorAgent = new ValidatorAgent();
 
     async deployModel(request: DeploymentRequest): Promise<string> {
         // 1. Create deployment record in Firestore
@@ -39,7 +41,8 @@ export class DeploymentOrchestrator {
             logs: ['Deployment initiated'],
             createdAt: serverTimestamp(),
             cloudProvider: request.cloudProvider,
-            computeStrategy: request.computeStrategy
+            computeStrategy: request.computeStrategy,
+            hostingTarget: request.hostingTarget || 'modeliq'
         });
 
         const deploymentId = deploymentRef.id;
@@ -121,7 +124,23 @@ export class DeploymentOrchestrator {
                 logs: ['Packaging complete', 'Generated Dockerfile and FastAPI server']
             });
 
-            // Step 2: Generate infrastructure code
+            // CHECK: Hosting Target
+            if (request.hostingTarget === 'modeliq') {
+                await this.updateDeployment(deploymentId, {
+                    status: 'active', // Immediately active for internal hosting
+                    progress: 100,
+                    logs: [
+                        'Internal Hosting Selected: Skipping external infrastructure provisioning.',
+                        'Registering model in Model Registry...',
+                        'Model is now live on Modeliq Platform.'
+                    ],
+                    endpoint: `internal://models/${request.modelName}/v1`
+                });
+                return; // Workflow complete for internal hosting
+            }
+
+
+            // Step 2: Generate infrastructure code (EXTERNAL ONLY)
             await this.updateDeployment(deploymentId, {
                 status: 'building',
                 progress: 40,
@@ -129,8 +148,8 @@ export class DeploymentOrchestrator {
             });
 
             const infraResult = await this.infraAgent.generateInfra({
-                cloudProvider: request.cloudProvider,
-                resourceType: request.computeStrategy,
+                cloudProvider: request.cloudProvider || 'gcp',
+                resourceType: request.computeStrategy || 'serverless',
                 appName: request.modelName,
                 region: 'us-central1',
                 autoScaling: true
