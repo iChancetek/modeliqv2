@@ -86,7 +86,6 @@ export class DeploymentOrchestrator {
             });
 
             const infraResult = await this.infraAgent.generateInfra({
-                modelName: request.modelName,
                 cloudProvider: request.cloudProvider,
                 computeTarget: request.computeStrategy,
                 region: 'us-central1',
