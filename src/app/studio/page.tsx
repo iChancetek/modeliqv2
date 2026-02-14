@@ -1,6 +1,7 @@
 "use client";
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,7 @@ import FloatingSidebar from '@/components/layout/FloatingSidebar'; // Import the
 import { Cpu, BarChart3, Cloud, Shield, FileText, ArrowUpRight, Activity, Upload, Settings } from 'lucide-react';
 
 export default function StudioPage() {
+    const router = useRouter();
     const [insights, setInsights] = useState<string[] | null>(null);
     const [analysisData, setAnalysisData] = useState<any>(null);
     const [config, setConfig] = useState({
@@ -29,6 +31,9 @@ export default function StudioPage() {
 
     const handleAnalysis = (data: any) => {
         setAnalysisData(data);
+
+        // Redirect to Pipeline immediately
+        router.push('/pipeline');
         if (data.insights) {
             // Split by newline or bullet points
             const lines = data.insights.split('\n').filter((line: string) => line.trim().length > 0);
@@ -133,7 +138,7 @@ export default function StudioPage() {
                         <section className="glass-panel p-8 rounded-3xl relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
                             <h2 className="text-xl font-bold mb-6 flex items-center gap-2 relative z-10">
-                                <Cloud className="text-primary" /> Start New Project
+                                <Cloud className="text-primary" /> Start AutoML Pipeline
                             </h2>
                             <SmartUpload onAnalysisComplete={handleAnalysis} />
                         </section>
