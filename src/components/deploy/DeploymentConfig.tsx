@@ -1,142 +1,199 @@
 "use client";
 
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Server, Cloud, Cpu, Globe, CheckCircle2, ShieldCheck, Zap } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Server, Cloud, Cpu, Globe, CheckCircle2, ShieldCheck, Zap, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { DeploymentOrchestrator } from '@/lib/agents/mlops/DeploymentOrchestrator';
+import { db } from '@/lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { useMLOps } from './MLOpsContext';
 
 const CLOUD_PROVIDERS = [
+    { id: 'gcp', name: 'GCP', icon: Cloud, color: 'text-blue-400', bg: 'bg-blue-400/10' },
     { id: 'aws', name: 'AWS', icon: Cloud, color: 'text-orange-400', bg: 'bg-orange-400/10' },
-    { id: 'gcp', name: 'Google Cloud', icon: Globe, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-    { id: 'azure', name: 'Azure', icon: Server, color: 'text-blue-600', bg: 'bg-blue-600/10' },
+    { id: 'azure', name: 'Azure', icon: Cloud, color: 'text-cyan-400', bg: 'bg-cyan-400/10' },
 ];
 
-const COMPUTE_TYPES = [
-    { id: 'serverless', name: 'Serverless', desc: 'Auto-scaling, Pay-per-use', icon: Zap },
-    { id: 'k8s', name: 'Kubernetes', desc: 'High Availability Cluster', icon: Server },
-    { id: 'vm', name: 'Virtual Machine', desc: 'Dedicated Instance', icon: Cpu },
+const COMPUTE_STRATEGIES = [
+    { id: 'serverless', name: 'Serverless', icon: Zap, desc: 'Auto-scaling, pay-per-use' },
+    { id: 'kubernetes', name: 'Kubernetes', icon: Server, desc: 'Container orchestration' },
+    { id: 'vm', name: 'VM', icon: Cpu, desc: 'Dedicated compute instances' },
 ];
+
+const orchestrator = new DeploymentOrchestrator();
 
 export default function DeploymentConfig() {
-    const [selectedCloud, setSelectedCloud] = useState<string | null>(null);
-    const [selectedCompute, setSelectedCompute] = useState<string | null>(null);
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [logs, setLogs] = useState<string[]>([]);
+    const { model } = useMLOps();
+    const [provider, setProvider] = useState('gcp');
+    const [compute, setCompute] = useState('serverless');
+    const [deploymentId, setDeploymentId] = useState<string | null>(null);
+    const [status, setStatus] = useState<any>(null);
+
+    // Subscribe to deployment status
+    useEffect(() => {
+        if (!deploymentId) return;
+
+        const unsubscribe = onSnapshot(doc(db, 'deployments', deploymentId), (snapshot) => {
+            if (snapshot.exists()) {
+                setStatus(snapshot.data());
+            }
+        });
+
+        return () => unsubscribe();
+    }, [deploymentId]);
 
     const handleDeploy = async () => {
-        setIsGenerating(true);
-        setLogs(["Initializing GenAI Deployment Agent...", "Analyzing Model requirements..."]);
+        if (!model) {
+            alert('Please upload a model in Step 3 first');
+            return;
+        }
 
-        // Mocking the agent workflow for now
-        await new Promise(r => setTimeout(r, 1000));
-        setLogs(prev => [...prev, `Selected Target: ${selectedCloud?.toUpperCase()} (${selectedCompute})`]);
+        try {
+            const id = await orchestrator.deployModel({
+                modelName: model.name,
+                modelFile: new File([], model.name), // Placeholder
+                framework: model.format === 'onnx' ? 'sklearn' : model.format as any,
+                cloudProvider: provider as any,
+                computeStrategy: compute as any
+            });
 
-        await new Promise(r => setTimeout(r, 1500));
-        setLogs(prev => [...prev, "Generating Dockerfile (PackagingAgent)...", "Generating Terraform modules (InfraAgent)..."]);
-
-        await new Promise(r => setTimeout(r, 1500));
-        setLogs(prev => [...prev, "Provisioning Resources...", "Deployment Successful! 🚀"]);
-        setIsGenerating(false);
+            setDeploymentId(id);
+        } catch (error) {
+            console.error('Deployment error:', error);
+        }
     };
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Configuration Section */}
-                <div className="space-y-6">
+        <div className="space-y-6 animate-in fade-in">
+            <Card className="bg-black/40 border-white/5">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Globe className="w-5 h-5 text-purple-400" />
+                        Deployment Configuration
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    {/* Cloud Provider Selection */}
                     <div>
-                        <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                            <Cloud className="w-4 h-4 text-primary" /> Target Cloud
-                        </h3>
+                        <h3 className="text-sm font-medium mb-3 text-gray-300">Cloud Provider</h3>
                         <div className="grid grid-cols-3 gap-3">
-                            {CLOUD_PROVIDERS.map((cloud) => (
+                            {CLOUD_PROVIDERS.map(p => (
                                 <button
-                                    key={cloud.id}
-                                    onClick={() => setSelectedCloud(cloud.id)}
-                                    className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 ${selectedCloud === cloud.id
-                                            ? 'border-primary bg-primary/10'
-                                            : 'border-white/5 bg-black/20 hover:border-white/20'
+                                    key={p.id}
+                                    onClick={() => setProvider(p.id)}
+                                    className={`p-4 rounded-lg border-2 transition-all ${provider === p.id
+                                            ? 'border-purple-500 bg-purple-500/10'
+                                            : 'border-white/10 bg-white/5 hover:bg-white/10'
                                         }`}
                                 >
-                                    <cloud.icon className={`w-8 h-8 ${cloud.color}`} />
-                                    <span className="text-sm font-medium">{cloud.name}</span>
+                                    <p.icon className={`w-6 h-6 mx-auto mb-2 ${provider === p.id ? p.color : 'text-gray-400'}`} />
+                                    <p className="text-sm font-medium text-center">{p.name}</p>
                                 </button>
                             ))}
                         </div>
                     </div>
 
+                    {/* Compute Strategy */}
                     <div>
-                        <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                            <Cpu className="w-4 h-4 text-primary" /> Compute Strategy
-                        </h3>
+                        <h3 className="text-sm font-medium mb-3 text-gray-300">Compute Strategy</h3>
                         <div className="space-y-2">
-                            {COMPUTE_TYPES.map((type) => (
+                            {COMPUTE_STRATEGIES.map(s => (
                                 <button
-                                    key={type.id}
-                                    onClick={() => setSelectedCompute(type.id)}
-                                    className={`w-full p-3 rounded-lg border text-left flex items-center gap-3 transition-all ${selectedCompute === type.id
-                                            ? 'border-primary bg-primary/10'
-                                            : 'border-white/5 bg-black/20 hover:border-white/20'
+                                    key={s.id}
+                                    onClick={() => setCompute(s.id)}
+                                    className={`w-full p-3 rounded-lg border flex items-center gap-3 transition-all ${compute === s.id
+                                            ? 'border-purple-500 bg-purple-500/10'
+                                            : 'border-white/10 bg-white/5 hover:bg-white/10'
                                         }`}
                                 >
-                                    <div className={`p-2 rounded-md ${selectedCompute === type.id ? 'bg-primary/20' : 'bg-white/5'}`}>
-                                        <type.icon className="w-4 h-4" />
+                                    <s.icon className={`w-5 h-5 ${compute === s.id ? 'text-purple-400' : 'text-gray-400'}`} />
+                                    <div className="text-left flex-1">
+                                        <p className="font-medium text-sm">{s.name}</p>
+                                        <p className="text-xs text-muted-foreground">{s.desc}</p>
                                     </div>
-                                    <div>
-                                        <div className="font-medium text-sm">{type.name}</div>
-                                        <div className="text-xs text-muted-foreground">{type.desc}</div>
-                                    </div>
-                                    {selectedCompute === type.id && <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />}
                                 </button>
                             ))}
                         </div>
                     </div>
 
                     <Button
-                        className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                        size="lg"
-                        disabled={!selectedCloud || !selectedCompute || isGenerating}
                         onClick={handleDeploy}
+                        className="w-full"
+                        size="lg"
+                        disabled={!model || (status && status.status !== 'failed')}
                     >
-                        {isGenerating ? "Deploying..." : "Launch Deployment"}
+                        {status && status.status !== 'failed' ? (
+                            <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Deploying...
+                            </>
+                        ) : (
+                            <>
+                                <Zap className="w-4 h-4 mr-2" />
+                                Deploy Model
+                            </>
+                        )}
                     </Button>
-                </div>
+                </CardContent>
+            </Card>
 
-                {/* Status / Logs Section */}
-                <Card className="bg-black/40 border-white/10 p-6 font-mono text-sm overflow-hidden flex flex-col">
-                    <div className="flex items-center gap-2 mb-4 text-muted-foreground border-b border-white/5 pb-2">
-                        <ShieldCheck className="w-4 h-4" /> Deployment Log
-                    </div>
-                    <div className="flex-1 space-y-2 overflow-y-auto min-h-[300px]">
-                        {logs.length === 0 && (
-                            <div className="text-center text-muted-foreground py-10 opacity-50">
-                                Waiting to start deployment...
+            {/* Deployment Status */}
+            {status && (
+                <Card className="bg-black/40 border-white/5">
+                    <CardHeader>
+                        <CardTitle className="text-sm flex items-center gap-2">
+                            {status.status === 'active' ? (
+                                <CheckCircle2 className="w-4 h-4 text-green-400" />
+                            ) : status.status === 'failed' ? (
+                                <ShieldCheck className="w-4 h-4 text-red-400" />
+                            ) : (
+                                <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
+                            )}
+                            Deployment Status
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {/* Progress Bar */}
+                        <div>
+                            <div className="flex justify-between text-xs mb-2">
+                                <span className="text-gray-400 capitalize">{status.status}</span>
+                                <span className="font-mono">{status.progress}%</span>
+                            </div>
+                            <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all duration-500"
+                                    style={{ width: `${status.progress}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Logs */}
+                        <div className="bg-black/60 rounded p-3 font-mono text-xs space-y-1 max-h-40 overflow-y-auto">
+                            {status.logs?.map((log: string, i: number) => (
+                                <div key={i} className="text-gray-300">
+                                    <span className="text-gray-500">[{new Date().toLocaleTimeString()}]</span> {log}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Endpoint */}
+                        {status.endpoint && (
+                            <div className="p-3 bg-green-500/10 border border-green-500/20 rounded">
+                                <p className="text-xs text-gray-400 mb-1">Live Endpoint:</p>
+                                <a
+                                    href={status.endpoint}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm font-mono text-green-400 hover:underline break-all"
+                                >
+                                    {status.endpoint}
+                                </a>
                             </div>
                         )}
-                        {logs.map((log, i) => (
-                            <motion.div
-                                key={i}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                className="flex gap-2"
-                            >
-                                <span className="text-gray-500">[{new Date().toLocaleTimeString()}]</span>
-                                <span className={log.includes("Successful") ? "text-green-400 font-bold" : "text-gray-300"}>
-                                    {log}
-                                </span>
-                            </motion.div>
-                        ))}
-                        {isGenerating && (
-                            <motion.div
-                                animate={{ opacity: [0.5, 1, 0.5] }}
-                                transition={{ repeat: Infinity, duration: 1.5 }}
-                                className="h-4 w-2 bg-primary ml-1"
-                            />
-                        )}
-                    </div>
+                    </CardContent>
                 </Card>
-            </div>
+            )}
         </div>
     );
 }
