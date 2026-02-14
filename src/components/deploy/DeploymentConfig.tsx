@@ -21,8 +21,6 @@ const COMPUTE_STRATEGIES = [
     { id: 'vm', name: 'VM', icon: Cpu, desc: 'Dedicated compute instances' },
 ];
 
-const orchestrator = new DeploymentOrchestrator();
-
 export default function DeploymentConfig() {
     const { model } = useMLOps();
     const [provider, setProvider] = useState('gcp');
@@ -50,6 +48,8 @@ export default function DeploymentConfig() {
         }
 
         try {
+            // Lazy-load orchestrator only when deploying
+            const orchestrator = new DeploymentOrchestrator();
             const id = await orchestrator.deployModel({
                 modelName: model.name,
                 modelFile: new File([], model.name), // Placeholder
@@ -83,8 +83,8 @@ export default function DeploymentConfig() {
                                     key={p.id}
                                     onClick={() => setProvider(p.id)}
                                     className={`p-4 rounded-lg border-2 transition-all ${provider === p.id
-                                            ? 'border-purple-500 bg-purple-500/10'
-                                            : 'border-white/10 bg-white/5 hover:bg-white/10'
+                                        ? 'border-purple-500 bg-purple-500/10'
+                                        : 'border-white/10 bg-white/5 hover:bg-white/10'
                                         }`}
                                 >
                                     <p.icon className={`w-6 h-6 mx-auto mb-2 ${provider === p.id ? p.color : 'text-gray-400'}`} />
@@ -103,8 +103,8 @@ export default function DeploymentConfig() {
                                     key={s.id}
                                     onClick={() => setCompute(s.id)}
                                     className={`w-full p-3 rounded-lg border flex items-center gap-3 transition-all ${compute === s.id
-                                            ? 'border-purple-500 bg-purple-500/10'
-                                            : 'border-white/10 bg-white/5 hover:bg-white/10'
+                                        ? 'border-purple-500 bg-purple-500/10'
+                                        : 'border-white/10 bg-white/5 hover:bg-white/10'
                                         }`}
                                 >
                                     <s.icon className={`w-5 h-5 ${compute === s.id ? 'text-purple-400' : 'text-gray-400'}`} />
