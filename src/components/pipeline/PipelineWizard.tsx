@@ -41,7 +41,11 @@ export default function PipelineWizard() {
     const [modelId, setModelId] = useState<string>(''); // Added for Deployment
     const [aiRecommendation, setAiRecommendation] = useState<string>(''); // AI Recommendation State
 
-    // Fetch Preview whenever pipelineSteps change
+    const [isClient, setIsClient] = useState(false); // New state to track client-side rendering
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
     useEffect(() => {
         // Auto-load from SessionStorage if available
         const storedName = sessionStorage.getItem('current_dataset_name');
@@ -141,7 +145,7 @@ export default function PipelineWizard() {
                                 <div className="relative">
                                     <input className="w-full bg-black/30 border border-gray-700 rounded p-3 text-white focus:border-accent outline-none"
                                         value={targetCol} onChange={e => setTargetCol(e.target.value)} placeholder="e.g., Survived" />
-                                    {sessionStorage.getItem('recommended_target') === targetCol && targetCol !== '' && (
+                                    {isClient && sessionStorage.getItem('recommended_target') === targetCol && targetCol !== '' && (
                                         <span className="absolute right-3 top-3 text-xs text-emerald-400 flex items-center gap-1">
                                             <BrainCircuit className="w-3 h-3" /> Auto-Detected
                                         </span>
