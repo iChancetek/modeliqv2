@@ -89,6 +89,12 @@ export default function usePyodide() {
                             
                             def printSchema(self):
                                 print(self._df.info())
+                        
+                        def __repr__(self):
+                            return f"DataFrameShim[{', '.join(self._df.columns)}]"
+                        
+                        def _repr_html_(self):
+                            return self._df.head(20).to_html()
 
                         # Register Shim
                         # 1. Ensure 'pyspark' package exists
