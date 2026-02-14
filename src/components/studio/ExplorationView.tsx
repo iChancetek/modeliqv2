@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import EliteChart, { DataPoint } from '@/components/viz/EliteChart';
-import { BarChart3, ScatterChart, Grid, Loader2 } from 'lucide-react';
+import { BarChart3, ScatterChart, Grid, Loader2, Table as TableIcon, ChevronDown } from 'lucide-react';
 
 interface ExplorationViewProps {
     filename: string;
@@ -11,22 +11,32 @@ interface ExplorationViewProps {
     data: any[]; // Full dataset
 }
 
-type VizType = 'dist' | 'corr' | 'scatter';
+type VizType = 'dist' | 'corr' | 'scatter' | 'data';
 
 export default function ExplorationView({ filename, columns, data }: ExplorationViewProps) {
-    const [vizType, setVizType] = useState<VizType>('dist');
+    const [vizType, setVizType] = useState<VizType>('data'); // Default to data view
     const [selectedColumn, setSelectedColumn] = useState<string>(columns[0] || '');
     const [selectedX, setSelectedX] = useState<string>(columns[0] || '');
     const [selectedY, setSelectedY] = useState<string>(columns[1] || columns[0] || '');
     const [loading, setLoading] = useState(false);
     const [chartData, setChartData] = useState<DataPoint[]>([]);
 
+    // Pagination for Data tab
+    const [visibleRows, setVisibleRows] = useState(50);
+
     useEffect(() => {
         if (!data || data.length === 0) return;
+        // Reset valid selections if columns change
+        if (!columns.includes(selectedColumn)) setSelectedColumn(columns[0]);
+        if (!columns.includes(selectedX)) setSelectedX(columns[0]);
+        if (!columns.includes(selectedY)) setSelectedY(columns[1] || columns[0]);
+
         computeVizData();
     }, [vizType, selectedColumn, selectedX, selectedY, data]);
 
     const computeVizData = async () => {
+        if (vizType === 'data') return; // No custom computation needed for raw data view
+
         setLoading(true);
         // Simulate async processing for UI responsiveness
         await new Promise(resolve => setTimeout(resolve, 300));
@@ -118,6 +128,14 @@ export default function ExplorationView({ filename, columns, data }: Exploration
             <div className="glass-panel p-4 flex flex-wrap gap-4 items-center justify-between">
                 <div className="flex gap-2 bg-black/20 p-1 rounded-lg">
                     <Button
+                        variant={vizType === 'data' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setVizType('data')}
+                        className={vizType === 'data' ? "bg-blue-600 hover:bg-blue-500" : ""}
+                    >
+                        <TableIcon className="w-4 h-4 mr-2" /> Data Preview
+                    </Button>
+                    <Button
                         variant={vizType === 'dist' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => setVizType('dist')}
@@ -176,7 +194,7 @@ export default function ExplorationView({ filename, columns, data }: Exploration
                 </div>
             </div>
 
-            {/* Chart Area */}
+            {/* Chart/Data Area */}
             <div className="relative min-h-[400px]">
                 {loading && (
                     <div className="absolute inset-0 z-10 bg-black/50 backdrop-blur-sm flex items-center justify-center rounded-xl">
@@ -184,7 +202,50 @@ export default function ExplorationView({ filename, columns, data }: Exploration
                     </div>
                 )}
 
-                {!loading && chartData.length === 0 && (
+                {/* Data Preview Table */}
+                {vizType === 'data' && (
+                    <div className="glass-panel overflow-x-auto rounded-xl">
+                        <table className="w-full text-left text-sm text-gray-400">
+                            <thead className="bg-black/30 text-gray-200 uppercase font-bold sticky top-0">
+                                <tr>
+                                    {columns.map((col) => (
+                                        <th key={col} className="p-3 whitespace-nowrap">{col}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {data.slice(0, visibleRows).map((row, i) => (
+                                    <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                        {columns.map((col) => (
+                                            <td key={`${i}-${col}`} className="p-3 whitespace-nowrap">
+                                                {row[col] !== null && row[col] !== undefined ? String(row[col]) : ''}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+
+                        {/* Footer / Load More */}
+                        <div className="p-4 border-t border-white/5 flex flex-col items-center gap-2 bg-black/20">
+                            <div className="text-xs text-muted-foreground">
+                                Showing {Math.min(visibleRows, data.length)} of {data.length.toLocaleString()} rows
+                            </div>
+                            {visibleRows < data.length && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setVisibleRows(prev => prev + 25)}
+                                    className="border-white/10 hover:bg-white/5"
+                                >
+                                    Load More (+25) <ChevronDown className="w-4 h-4 ml-2" />
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {!loading && chartData.length === 0 && vizType !== 'data' && (
                     <div className="flex items-center justify-center h-[400px] text-gray-500">
                         No data available for visualization
                     </div>

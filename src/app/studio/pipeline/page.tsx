@@ -79,6 +79,14 @@ export default function PipelinePage() {
         }
     };
 
+    // --- Auto-GenAI Trigger ---
+    useEffect(() => {
+        // Auto-generate code when entering a new stage (skip stage 0/1 which are manual setup/upload)
+        if (currentStage > 1 && !generatedCode && !isGenerating) {
+            generateStageCode();
+        }
+    }, [currentStage]);
+
     // --- Execution ---
     const executeStage = async () => {
         setIsExecuting(true);
@@ -91,9 +99,10 @@ export default function PipelinePage() {
                 // Inject data directly for Step 2
                 await runPython(`
                     import pandas as pd
-                    data = ${JSON.stringify(dataset.preview)} # In real app, pass full data
+                    data = ${JSON.stringify(dataset.data.slice(0, 100))} # Inject sample for speed, normally full data
                     df = pd.DataFrame(data)
                     print("Data Loaded Successfully!")
+                    print(f"DataFrame Shape: {df.shape}")
                     print(df.info())
                  `);
                 setOutput("Data Loaded into DataFrame 'df'.");
@@ -106,7 +115,7 @@ export default function PipelinePage() {
             // Move to next stage on success
             if (currentStage < STAGES.length - 1) {
                 setCurrentStage(prev => prev + 1);
-                setGeneratedCode(""); // Clear for next step
+                setGeneratedCode(""); // Clear for next step to trigger auto-gen
             }
         } catch (e: any) {
             alert("Execution Error: " + e.message);
@@ -123,10 +132,10 @@ export default function PipelinePage() {
                     <div
                         key={stage.id}
                         className={`p-4 rounded-xl border transition-all ${idx === currentStage
-                                ? 'bg-primary/10 border-primary shadow-[0_0_15px_rgba(59,130,246,0.5)]'
-                                : idx < currentStage
-                                    ? 'bg-green-500/10 border-green-500/50 text-green-400'
-                                    : 'bg-black/20 border-white/5 opacity-50'
+                            ? 'bg-primary/10 border-primary shadow-[0_0_15px_rgba(59,130,246,0.5)]'
+                            : idx < currentStage
+                                ? 'bg-green-500/10 border-green-500/50 text-green-400'
+                                : 'bg-black/20 border-white/5 opacity-50'
                             }`}
                     >
                         <div className="flex items-center justify-between mb-1">
