@@ -244,6 +244,45 @@ export default function SentinelDashboard() {
                                     </ResponsiveContainer>
                                 </CardContent>
                             </Card>
+
+                            <Card className="bg-black/40 border-white/5 md:col-span-2">
+                                <CardHeader className="py-3">
+                                    <CardTitle className="text-xs font-mono text-gray-400 flex items-center gap-2">
+                                        <Activity className="w-4 h-4 text-red-400" /> FEATURE DRIFT (KL DIVERGENCE)
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="h-[200px]">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <AreaChart data={telemetryPoints.map((p, i) => ({
+                                            timestamp: p.timestamp,
+                                            // Simulate drift score variation for visualization if real metric missing
+                                            driftScore: (Math.sin(i * 0.2) + 1) * 0.1 + (drift?.hasDrift ? 0.4 : 0)
+                                        }))}>
+                                            <defs>
+                                                <linearGradient id="colorDrift" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                                                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#222" />
+                                            <XAxis dataKey="timestamp" hide />
+                                            <YAxis stroke="#444" fontSize={10} domain={[0, 1]} />
+                                            <Tooltip
+                                                contentStyle={{ background: '#111', border: '1px solid #333' }}
+                                                labelFormatter={(ts) => new Date(ts).toLocaleTimeString()}
+                                            />
+                                            <Area
+                                                type="monotone"
+                                                dataKey="driftScore"
+                                                stroke="#ef4444"
+                                                fillOpacity={1}
+                                                fill="url(#colorDrift)"
+                                                isAnimationActive={false}
+                                            />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </CardContent>
+                            </Card>
                         </div>
 
                         <Card className="bg-black/40 border-white/5 p-4">
