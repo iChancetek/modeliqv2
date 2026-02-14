@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Loader2, AlertCircle, Wand2, CheckCircle, BarChart3, Binary, Scale, Scissors, BrainCircuit, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import usePyodide from '@/hooks/usePyodide'; // Import Hook
+import SmartUpload from '@/components/upload/SmartUpload'; // Import SmartUpload
 
 type Step = 'config' | 'cleaning' | 'preprocessing' | 'augmentation' | 'splitting' | 'feature_engineering' | 'selection' | 'training' | 'results';
 
@@ -124,6 +126,43 @@ export default function PipelineWizard() {
         }
     };
 
+    const handleUploadAnalysis = (data: any) => {
+        setLoading(true);
+        try {
+            // 1. Set Basic Data
+            setFilename(data.filename);
+            setColumns(data.columns);
+            setDataPreview(data.preview);
+            setDataProfile({ rows: data.rowCount, columns: {} }); // Simple profile
+
+            // 2. Auto-Populate Config
+            if (data.recommendedTarget) {
+                setTargetCol(data.recommendedTarget);
+            }
+            if (data.recommendedTask) {
+                setProblemType(data.recommendedTask);
+            }
+
+            // 3. Set Project Name
+            if (data.filename) {
+                const name = data.filename.split('.')[0];
+                setProjectName(name.charAt(0).toUpperCase() + name.slice(1) + " Analysis");
+            }
+
+            // 4. Set AI Recommendation
+            if (data.recommendedTarget && data.recommendedTask) {
+                setAiRecommendation(`Based on the dataset, we detected '${data.recommendedTarget}' as the likely target. 
+                 Since it has ${data.recommendedTask === 'classification' ? 'few' : 'many'} unique values, we recommend a ${data.recommendedTask.toUpperCase()} approach using 
+                 ${data.recommendedTask === 'classification' ? 'Random Forest or XGBoost' : 'Gradient Boosting'} algorithms.`);
+            }
+
+            setLoading(false);
+        } catch (error) {
+            console.error("Error processing upload analysis:", error);
+            setLoading(false);
+        }
+    };
+
     const addPipelineStep = (type: string, action: string, params: any) => {
         const newStep = { type, action, params };
         setPipelineSteps([...pipelineSteps, newStep]);
@@ -136,6 +175,34 @@ export default function PipelineWizard() {
                     <div className="space-y-6">
                         <h2 className="text-2xl font-bold mb-4">1. Project Configuration</h2>
                         <div className="space-y-4 mb-6">
+                            {/* Smart Upload Integration */}
+                            {!filename ? (
+                                <div className="mb-8">
+                                    <label className="block text-sm text-gray-400 mb-2">Upload Dataset</label>
+                                    <SmartUpload onAnalysisComplete={handleUploadAnalysis} />
+                                </div>
+                            ) : (
+                                <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex justify-between items-center animate-in fade-in">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-emerald-500/20 rounded-full">
+                                            <CheckCircle className="w-5 h-5 text-emerald-400" />
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-emerald-100">Dataset Uploaded</div>
+                                            <div className="text-xs text-emerald-400/70">{filename}</div>
+                                        </div>
+                                    </div>
+                                    <Button variant="ghost" size="sm" onClick={() => {
+                                        setFilename('');
+                                        setDataPreview([]);
+                                        setColumns([]);
+                                        setTargetCol('');
+                                    }} className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/20">
+                                        Change File
+                                    </Button>
+                                </div>
+                            )}
+
                             <div>
                                 <label className="block text-sm text-gray-400 mb-2">Project Name</label>
                                 <input className="w-full bg-black/30 border border-gray-700 rounded p-3 text-white focus:border-accent outline-none"
@@ -144,10 +211,10 @@ export default function PipelineWizard() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm text-gray-400 mb-2">Dataset Filename (from Uploads)</label>
-                                <input className="w-full bg-black/30 border border-gray-700 rounded p-3 text-white focus:border-accent outline-none"
-                                    value={filename} onChange={e => setFilename(e.target.value)} placeholder="e.g., titanic.csv" />
+                            <div className="opacity-50 pointer-events-none">
+                                <label className="block text-sm text-gray-400 mb-2">Dataset Filename</label>
+                                <input className="w-full bg-black/30 border border-gray-700 rounded p-3 text-white outline-none"
+                                    value={filename} readOnly />
                             </div>
                             <div>
                                 <label className="block text-sm text-gray-400 mb-2">Target Column</label>
