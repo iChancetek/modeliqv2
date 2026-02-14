@@ -7,7 +7,7 @@ import SmartUpload from '@/components/upload/SmartUpload';
 import InsightCard from '@/components/studio/InsightCard';
 import ExplorationView from '@/components/studio/ExplorationView';
 import FloatingSidebar from '@/components/layout/FloatingSidebar'; // Import the new sidebar
-import { Cpu, BarChart3, Cloud, Shield, FileText, ArrowUpRight, Activity } from 'lucide-react';
+import { Cpu, BarChart3, Cloud, Shield, FileText, ArrowUpRight, Activity, Upload, Settings } from 'lucide-react';
 
 export default function StudioPage() {
     const [insights, setInsights] = useState<string[] | null>(null);
