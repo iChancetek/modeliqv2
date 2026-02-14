@@ -1,9 +1,8 @@
 import { OpenAI } from 'openai';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+import { OpenAI } from 'openai';
+
+// Removed module-level initialization to prevent client-side crashes
 
 interface PackagingRequest {
     modelName: string;
@@ -21,6 +20,11 @@ interface PackagingResult {
 
 export class PackagingAgent {
     async generatePackage(request: PackagingRequest): Promise<PackagingResult> {
+        const openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+            dangerouslyAllowBrowser: true // Allow client-side usage if needed (though API routes preferred)
+        });
+
         const telemetryUrl = process.env.NEXT_PUBLIC_API_URL || 'https://modeliqv2.firebaseapp.com';
 
         const prompt = `

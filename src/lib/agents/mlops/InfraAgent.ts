@@ -1,8 +1,8 @@
 import { OpenAI } from 'openai';
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+import { OpenAI } from 'openai';
+
+// Removed module-level initialization
 
 interface InfraRequest {
     cloudProvider: 'aws' | 'gcp' | 'azure';
@@ -18,6 +18,11 @@ interface InfraResult {
 
 export class InfraAgent {
     async generateInfra(request: InfraRequest): Promise<InfraResult> {
+        const openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+            dangerouslyAllowBrowser: true
+        });
+
         const prompt = `
       You are an expert Cloud Architect. Generate Infrastructure-as-Code (Terraform) for deploying an ML model.
 
