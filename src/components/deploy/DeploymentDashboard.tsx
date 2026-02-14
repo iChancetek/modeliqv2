@@ -3,12 +3,12 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Server, Activity, GitBranch, RefreshCw, ShieldCheck, Box, ArrowLeft, Target, Database, Code, Home } from 'lucide-react';
+import { Server, Activity, GitBranch, RefreshCw, ShieldCheck, Box, ArrowLeft, Target, Database, Code, Home, MonitorCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import DeploymentConfig from './DeploymentConfig';
 import ValidationGate from './ValidationGate';
-import DriftMonitor from './DriftMonitor';
+import SentinelDashboard from '../sentinel/SentinelDashboard';
 import RetrainingTrigger from './RetrainingTrigger';
 import { MLOpsProvider, useMLOps } from './MLOpsContext';
 import { ProblemDefinitionStep, DataEngineeringStep, ModelDevelopmentStep } from './LifecycleSteps';
@@ -91,7 +91,7 @@ function DashboardContent() {
                     {activeTab === 'develop' && <ModelDevelopmentStep />}
                     {activeTab === 'validate' && <ValidationGate />}
                     {activeTab === 'deploy' && <DeploymentConfig />}
-                    {activeTab === 'monitor' && <DriftMonitor />}
+                    {activeTab === 'monitor' && <SentinelDashboard />}
                     {activeTab === 'retrain' && <RetrainingTrigger />}
                 </div>
             </div>
