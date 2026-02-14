@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Loader2, AlertCircle, Wand2, CheckCircle, BarChart3, Binary, Scale, Scissors, BrainCircuit, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { motion, AnimatePresence } from 'framer-motion';
+
 import usePyodide from '@/hooks/usePyodide'; // Import Hook
 import SmartUpload from '@/components/upload/SmartUpload'; // Import SmartUpload
 
