@@ -6,9 +6,10 @@ import { motion } from 'framer-motion';
 import { Server, Activity, GitBranch, RefreshCw, ShieldCheck, Box, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+import DeploymentConfig from './DeploymentConfig';
+
 // Placeholder components - will be implemented individually next
 const ValidationGate = () => <div className="p-4 text-gray-400">Validation Gate: Checking Model Metrics against SLA...</div>;
-const DeploymentConfig = () => <div className="p-4 text-gray-400">Deployment Config: Cloud Selection & Packaging...</div>;
 const DriftMonitor = () => <div className="p-4 text-gray-400">Drift Monitor: Tracking Prediction Latency & Data Drift...</div>;
 const RetrainingTrigger = () => <div className="p-4 text-gray-400">Retraining: Auto-trigger configuration...</div>;
 
