@@ -1,4 +1,3 @@
-```javascript
 "use client";
 
 import { motion } from "framer-motion";
@@ -35,7 +34,7 @@ export default function InsightCard({ insights, loading, onInsightClick }: Insig
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: i * 0.1 }}
-                                className={`flex items - start gap - 3 p - 3 rounded - lg bg - white / 5 transition - colors ${ onInsightClick ? 'cursor-pointer hover:bg-white/10' : '' } `}
+                                className={`flex items-start gap-3 p-3 rounded-lg bg-white/5 transition-colors ${onInsightClick ? 'cursor-pointer hover:bg-white/10' : ''}`}
                                 onClick={() => onInsightClick && onInsightClick(insight)}
                             >
                                 <div className="mt-1">
