@@ -10,11 +10,8 @@ import DeploymentConfig from './DeploymentConfig';
 import ValidationGate from './ValidationGate';
 import DriftMonitor from './DriftMonitor';
 import RetrainingTrigger from './RetrainingTrigger';
-
-// Placeholder components - will be implemented individually next
-const ProblemDefinition = () => <div className="p-4 text-gray-400">Step 1: Problem Definition & Metrics (Managed in Studio)</div>;
-const DataEngineering = () => <div className="p-4 text-gray-400">Step 2: Data Collection & Preparation (Managed in Studio)</div>;
-const ModelDevelopment = () => <div className="p-4 text-gray-400">Step 3: Model Training & Experimentation (Managed in Studio)</div>;
+import { MLOpsProvider, useMLOps } from './MLOpsContext';
+import { ProblemDefinitionStep, DataEngineeringStep, ModelDevelopmentStep } from './LifecycleSteps';
 
 const TABS = [
     { id: 'define', label: '1. Define', icon: Target },
@@ -27,7 +24,15 @@ const TABS = [
 ];
 
 export default function DeploymentDashboard() {
-    const [activeTab, setActiveTab] = useState('deploy'); // Default to Deploy since 1-3 are usually done
+    return (
+        <MLOpsProvider>
+            <DashboardContent />
+        </MLOpsProvider>
+    );
+}
+
+function DashboardContent() {
+    const [activeTab, setActiveTab] = useState('define'); // Default to start of lifecycle
 
     return (
         <div className="w-full h-full p-6 space-y-6">
@@ -81,9 +86,9 @@ export default function DeploymentDashboard() {
             {/* Content Area */}
             <div className="glass-panel rounded-xl p-1 min-h-[400px]">
                 <div className="bg-black/40 rounded-lg p-6 h-full">
-                    {activeTab === 'define' && <ProblemDefinition />}
-                    {activeTab === 'data' && <DataEngineering />}
-                    {activeTab === 'develop' && <ModelDevelopment />}
+                    {activeTab === 'define' && <ProblemDefinitionStep />}
+                    {activeTab === 'data' && <DataEngineeringStep />}
+                    {activeTab === 'develop' && <ModelDevelopmentStep />}
                     {activeTab === 'validate' && <ValidationGate />}
                     {activeTab === 'deploy' && <DeploymentConfig />}
                     {activeTab === 'monitor' && <DriftMonitor />}
