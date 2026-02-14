@@ -89,7 +89,7 @@ function DashboardContent() {
                     {activeTab === 'define' && <ProblemDefinitionStep />}
                     {activeTab === 'data' && <DataEngineeringStep />}
                     {activeTab === 'develop' && <ModelDevelopmentStep />}
-                    {activeTab === 'validate' && <ValidationGate />}
+                    {activeTab === 'validate' && <ValidationGate status={status} />}
                     {activeTab === 'deploy' && <DeploymentConfig />}
                     {activeTab === 'monitor' && <SentinelDashboard />}
                     {activeTab === 'retrain' && <RetrainingTrigger />}
