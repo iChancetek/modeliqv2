@@ -1,5 +1,6 @@
 import { PackagingAgent } from './PackagingAgent';
 import { InfraAgent } from './InfraAgent';
+import { ValidatorAgent } from './ValidatorAgent';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 
@@ -58,6 +59,48 @@ export class DeploymentOrchestrator {
 
     private async runDeploymentPipeline(deploymentId: string, request: DeploymentRequest) {
         try {
+            // Step 0: Validation Gate
+            await this.updateDeployment(deploymentId, {
+                status: 'pending', // Validation is pre-packaging in this flow
+                progress: 5,
+                logs: ['Initiating Model Validation Gate...', 'Agent: ValidatorAgent analyzing model metrics...']
+            });
+
+            // Simulate fetching metrics from a model registry or training run
+            // In a real scenario, these come from the experiment tracker
+            const mockTrainingMetrics = {
+                accuracy: 0.92,
+                f1Score: 0.89,
+                latencyMs: 45,
+                biasScore: 0.01
+            };
+
+            const validationResult = await this.validatorAgent.execute({
+                id: 'val-' + deploymentId,
+                type: 'validate_model',
+                status: 'pending',
+                logs: [],
+                payload: {
+                    metrics: mockTrainingMetrics,
+                    acceptanceCriteria: {
+                        accuracy: '> 0.90',
+                        latencyMs: '< 50'
+                    }
+                }
+            });
+
+            await this.updateDeployment(deploymentId, {
+                logs: [
+                    `Validation Complete: ${validationResult.approved ? 'APPROVED' : 'REJECTED'}`,
+                    `Risk Level: ${validationResult.riskLevel}`,
+                    `Feedback: ${validationResult.feedback}`
+                ]
+            });
+
+            if (!validationResult.approved) {
+                throw new Error(`Model rejected by Validation Gate: ${validationResult.feedback}`);
+            }
+
             // Step 1: Generate packaging artifacts
             await this.updateDeployment(deploymentId, {
                 status: 'packaging',
