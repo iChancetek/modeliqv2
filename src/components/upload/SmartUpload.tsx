@@ -46,6 +46,7 @@ export default function SmartUpload({ onAnalysisComplete }: SmartUploadProps) {
                         filename: selectedFile.name,
                         columns: columns,
                         rowCount: rowCount,
+                        data: results.data, // Include full data for client-side processing
                         preview: preview,
                         insights: `
                             • Dataset contains ${rowCount.toLocaleString()} rows and ${columns.length} columns.

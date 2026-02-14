@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import EliteChart, { DataPoint } from '@/components/viz/EliteChart';
 import { BarChart3, ScatterChart, Grid, Loader2 } from 'lucide-react';
@@ -8,11 +8,12 @@ import { BarChart3, ScatterChart, Grid, Loader2 } from 'lucide-react';
 interface ExplorationViewProps {
     filename: string;
     columns: string[];
+    data: any[]; // Full dataset
 }
 
 type VizType = 'dist' | 'corr' | 'scatter';
 
-export default function ExplorationView({ filename, columns }: ExplorationViewProps) {
+export default function ExplorationView({ filename, columns, data }: ExplorationViewProps) {
     const [vizType, setVizType] = useState<VizType>('dist');
     const [selectedColumn, setSelectedColumn] = useState<string>(columns[0] || '');
     const [selectedX, setSelectedX] = useState<string>(columns[0] || '');
@@ -21,41 +22,94 @@ export default function ExplorationView({ filename, columns }: ExplorationViewPr
     const [chartData, setChartData] = useState<DataPoint[]>([]);
 
     useEffect(() => {
-        if (filename) {
-            fetchVizData();
-        }
-    }, [vizType, selectedColumn, selectedX, selectedY, filename]);
+        if (!data || data.length === 0) return;
+        computeVizData();
+    }, [vizType, selectedColumn, selectedX, selectedY, data]);
 
-    const fetchVizData = async () => {
+    const computeVizData = async () => {
         setLoading(true);
+        // Simulate async processing for UI responsiveness
+        await new Promise(resolve => setTimeout(resolve, 300));
+
         try {
-            const body: any = {
-                filename,
-                type: vizType,
-            };
+            let processedData: DataPoint[] = [];
 
-            if (vizType === 'dist') body.column = selectedColumn;
-            if (vizType === 'scatter') {
-                body.x = selectedX;
-                body.y = selectedY;
+            if (vizType === 'dist' && selectedColumn) {
+                // Compute Frequency Distribution
+                const counts: Record<string, number> = {};
+                data.forEach(row => {
+                    const val = row[selectedColumn];
+                    if (val !== undefined && val !== null) {
+                        const key = String(val);
+                        counts[key] = (counts[key] || 0) + 1;
+                    }
+                });
+
+                // Convert to DataPoint array and slice top 20 to avoid overcrowding
+                processedData = Object.entries(counts)
+                    .map(([name, value]) => ({ name, value }))
+                    .sort((a, b) => b.value - a.value)
+                    .slice(0, 20);
+
+            } else if (vizType === 'scatter' && selectedX && selectedY) {
+                // Map X-Y values
+                processedData = data
+                    .filter(row => row[selectedX] != null && row[selectedY] != null) // Filter nulls
+                    .slice(0, 500) // Limit points for performance
+                    .map((row, i) => ({
+                        name: `Pt${i}`,
+                        x: Number(row[selectedX]) || 0,
+                        y: Number(row[selectedY]) || 0,
+                        value: 1 // Dummy value for size
+                    }));
+
+            } else if (vizType === 'corr') {
+                // Compute Simple Correlation Matrix (only for numeric columns)
+                // This is a heavy operation, so we limit to first 10 numeric columns
+                const numericCols = columns.filter(col => {
+                    const val = Number(data[0]?.[col]);
+                    return !isNaN(val);
+                }).slice(0, 10);
+
+                // Initialize matrix
+                const matrix: any[] = [];
+
+                numericCols.forEach(col1 => {
+                    const rowObj: any = { index: col1 };
+                    const values1 = data.map(r => Number(r[col1]) || 0);
+
+                    numericCols.forEach(col2 => {
+                        const values2 = data.map(r => Number(r[col2]) || 0);
+                        const corr = calculateCorrelation(values1, values2);
+                        rowObj[col2] = corr;
+                    });
+                    matrix.push(rowObj);
+                });
+                processedData = matrix;
             }
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visualize`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            });
-            const result = await response.json();
-
-            if (result.data) {
-                // Ensure data matches DataPoint interface
-                setChartData(result.data);
-            }
+            setChartData(processedData);
         } catch (error) {
-            console.error("Failed to fetch visualization", error);
+            console.error("Viz Computation Error", error);
         } finally {
             setLoading(false);
         }
+    };
+
+    // Helper: Pearson Correlation
+    const calculateCorrelation = (x: number[], y: number[]) => {
+        const n = x.length;
+        if (n === 0) return 0;
+        const sumX = x.reduce((a, b) => a + b, 0);
+        const sumY = y.reduce((a, b) => a + b, 0);
+        const sumXY = x.reduce((a, b, i) => a + b * y[i], 0);
+        const sumX2 = x.reduce((a, b) => a + b * b, 0);
+        const sumY2 = y.reduce((a, b) => a + b * b, 0);
+
+        const numerator = n * sumXY - sumX * sumY;
+        const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+
+        return denominator === 0 ? 0 : numerator / denominator;
     };
 
     return (
@@ -130,7 +184,13 @@ export default function ExplorationView({ filename, columns }: ExplorationViewPr
                     </div>
                 )}
 
-                {vizType === 'dist' && (
+                {!loading && chartData.length === 0 && (
+                    <div className="flex items-center justify-center h-[400px] text-gray-500">
+                        No data available for visualization
+                    </div>
+                )}
+
+                {vizType === 'dist' && chartData.length > 0 && (
                     <EliteChart
                         data={chartData}
                         title={`Distribution of ${selectedColumn}`}
@@ -139,7 +199,7 @@ export default function ExplorationView({ filename, columns }: ExplorationViewPr
                     />
                 )}
 
-                {vizType === 'scatter' && (
+                {vizType === 'scatter' && chartData.length > 0 && (
                     <EliteChart
                         data={chartData}
                         title={`${selectedY} vs ${selectedX}`}
@@ -148,14 +208,14 @@ export default function ExplorationView({ filename, columns }: ExplorationViewPr
                     />
                 )}
 
-                {vizType === 'corr' && (
+                {vizType === 'corr' && chartData.length > 0 && (
                     <div className="glass-panel p-6 overflow-x-auto">
                         <h3 className="text-xl font-bold mb-4 text-blue-400">Correlation Matrix</h3>
                         <table className="w-full text-left text-sm text-gray-400">
                             <thead>
                                 <tr className="border-b border-white/10">
                                     <th className="p-2">Feature</th>
-                                    {chartData.length > 0 && Object.keys(chartData[0]).filter(k => k !== 'index').map(k => (
+                                    {Object.keys(chartData[0]).filter(k => k !== 'index').map(k => (
                                         <th key={k} className="p-2">{k}</th>
                                     ))}
                                 </tr>

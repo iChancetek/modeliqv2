@@ -72,6 +72,7 @@ export default function StudioPage() {
                                 <ExplorationView
                                     filename={analysisData.filename}
                                     columns={analysisData.columns}
+                                    data={analysisData.data}
                                 />
                             </section>
                         )}
