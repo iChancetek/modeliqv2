@@ -56,6 +56,52 @@ export default function StudioPage() {
                             <SmartUpload onAnalysisComplete={handleAnalysis} />
                         </section>
 
+                        {/* Project Configuration Section */}
+                        <section className="glass-panel p-6 rounded-3xl space-y-4">
+                            <h2 className="text-xl font-bold flex items-center gap-2">
+                                <Settings className="w-5 h-5 text-primary" /> Project Configuration
+                            </h2>
+
+                            <div className="space-y-2">
+                                <label htmlFor="projectName" className="text-sm font-medium text-muted-foreground">Project Name</label>
+                                <Input
+                                    value={config.name}
+                                    onChange={(e) => setConfig({ ...config, name: e.target.value })}
+                                    id="projectName"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label htmlFor="targetColumn" className="text-sm font-medium text-muted-foreground">Target Column</label>
+                                <select
+                                    id="targetColumn"
+                                    className="w-full bg-black/20 border border-white/10 rounded-md p-2 text-sm focus:border-primary transition-colors"
+                                    value={config.target}
+                                    onChange={(e) => setConfig({ ...config, target: e.target.value })}
+                                    disabled={!analysisData}
+                                >
+                                    {!analysisData && <option value="">Upload data first...</option>}
+                                    {analysisData?.columns?.map((col: string) => (
+                                        <option key={col} value={col}>{col}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label htmlFor="problemType" className="text-sm font-medium text-muted-foreground">Problem Type</label>
+                                <select
+                                    id="problemType"
+                                    className="w-full bg-black/20 border border-white/10 rounded-md p-2 text-sm focus:border-primary transition-colors"
+                                    value={config.problemType}
+                                    onChange={(e) => setConfig({ ...config, problemType: e.target.value })}
+                                >
+                                    <option value="classification">Classification</option>
+                                    <option value="regression">Regression</option>
+                                    <option value="clustering">Clustering</option>
+                                </select>
+                            </div>
+                        </section>
+
                         {/* AI Insights Display */}
                         {insights && (
                             <div className="animate-in slide-in-from-bottom-5">
