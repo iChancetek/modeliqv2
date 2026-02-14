@@ -1,4 +1,4 @@
-
+import { OpenAI } from 'openai';
 
 // Removed module-level initialization to prevent client-side crashes
 
