@@ -115,10 +115,10 @@ export default function PipelineWizard() {
         }
     }, [filename]);
 
-    const handleUploadAnalysis = (filename: string, analysis: any) => {
+    const handleUploadAnalysis = (analysis: any) => {
         // This function matches the signature expected by SmartUpload onAnalysisComplete
-        // analysis contains { columns, preview, profile, ... }
-        setFilename(filename);
+        // analysis contains { filename, columns, preview, profile, ... }
+        setFilename(analysis.filename || 'uploaded_file.csv');
         if (analysis.profile) {
             setDataProfile(analysis.profile);
         }
