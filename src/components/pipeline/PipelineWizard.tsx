@@ -600,10 +600,15 @@ export default function PipelineWizard() {
                                     <div className="absolute top-0 left-0 h-full bg-accent animate-pulse w-full origin-left transform scale-x-50"></div>
                                 </div>
                                 <div className="font-mono text-xs text-green-400 space-y-1 h-32 overflow-y-auto bg-black/50 p-4 rounded border border-gray-800">
-                                    <div>$ Initializing training environment...</div>
-                                    <div>$ Loading transformed dataset...</div>
-                                    <div>$ Applying split...</div>
-                                    <div>$ Training model...</div>
+                                    {!loading && <div className="text-gray-500">$ Ready to train...</div>}
+                                    {loading && (
+                                        <>
+                                            <div>$ Initializing training environment... [OK]</div>
+                                            <div>$ Loading dataset and libraries... [OK]</div>
+                                            <div>$ Executing {pipelineConfig.algorithm.name} training...</div>
+                                            <div className="animate-pulse text-accent">$ processing...</div>
+                                        </>
+                                    )}
                                 </div>
                                 <Button className="w-full" onClick={async () => {
                                     // Trigger Training (In-Browser via Pyodide)
@@ -821,25 +826,26 @@ print(json.dumps(metrics))
                                             // Parse stdout for JSON metrics
                                             try {
                                                 const lines = stdout.trim().split('\n');
-                                                const jsonLine = lines[lines.length - 1];
+                                                // Find the line that looks like our JSON metrics
+                                                const jsonLine = lines.find(l => l.startsWith('{"accuracy":')) || lines[lines.length - 1];
+
+                                                if (!jsonLine) throw new Error("No JSON output found in stdout");
+
                                                 const metrics = JSON.parse(jsonLine);
 
                                                 setMetrics(metrics);
                                                 setModelId(`model_${Date.now()}_${algo}`);
-                                                setCurrentStep('results');
 
                                                 // --- NEW: Persist Model for Deployment ---
-                                                // 1. Dump model in Python (We need to run a separate script or append to previous)
-                                                // Since previous script finished, variables are still in scope in Pyodide!
+                                                // Ensure joblib is loaded
+                                                await pyodide.loadPackage(['joblib']);
+
                                                 await runPython(`
 import joblib
 joblib.dump(model, 'model.joblib')
                                                     `);
 
-                                                // 2. Read from FS
                                                 const modelFileContent = pyodide.FS.readFile('model.joblib');
-
-                                                // 3. Save to Global (Client-side persistence)
                                                 const file = new File([modelFileContent], `${algo}_model.joblib`, { type: 'application/octet-stream' });
 
                                                 // @ts-ignore
@@ -849,8 +855,12 @@ joblib.dump(model, 'model.joblib')
 
                                                 console.log("Model saved to window.__PENDING_MODEL__", file);
 
-                                            } catch (parseError) {
+                                                // Only move to next step after successful persistence
+                                                setCurrentStep('results');
+
+                                            } catch (parseError: any) {
                                                 console.error("Failed to parse metrics or save model", parseError, stdout);
+                                                alert("Training completed but failed to process results:\n" + parseError.message);
                                             }
                                         }
 
