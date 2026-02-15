@@ -827,7 +827,7 @@ print(json.dumps(metrics))
                                             try {
                                                 const lines = stdout.trim().split('\n');
                                                 // Find the line that looks like our JSON metrics
-                                                const jsonLine = lines.find(l => l.startsWith('{"accuracy":')) || lines[lines.length - 1];
+                                                const jsonLine = lines.find((l: string) => l.startsWith('{"accuracy":')) || lines[lines.length - 1];
 
                                                 if (!jsonLine) throw new Error("No JSON output found in stdout");
 
