@@ -37,7 +37,7 @@ export class InfraAgent {
 
         try {
             const response = await openai.chat.completions.create({
-                model: "gpt-4-turbo-preview",
+                model: "gpt-5.2",
                 messages: [{ role: "system", content: "You are a Cloud Architect." }, { role: "user", content: prompt }],
                 response_format: { type: "json_object" },
             });

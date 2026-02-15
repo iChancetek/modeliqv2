@@ -88,7 +88,7 @@ Ensure the /predict endpoint includes this telemetry call for every request.
 
         try {
             const response = await openai.chat.completions.create({
-                model: "gpt-4-turbo-preview", // Or gpt-3.5-turbo if cost concern, but 4 is better for code
+                model: "gpt-5.2", // User requested GPT-5.2
                 messages: [{ role: "system", content: "You are a helpful MLOps assistant." }, { role: "user", content: prompt }],
                 response_format: { type: "json_object" },
             });
