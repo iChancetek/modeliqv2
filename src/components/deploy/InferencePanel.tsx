@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Play, Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Sentinel } from '@/lib/sentinel/sdk';
 
 export function InferencePanel() {
     const { model, dataset } = useMLOps();
@@ -135,24 +136,26 @@ export function InferencePanel() {
         if (!model) return;
 
         try {
-            await fetch('/api/telemetry/ingest', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    modelId: model.name,
-                    version: model.version,
-                    metrics: {
-                        latencyMs: latency,
-                        throughputRps: 1, // Single request
-                        errorRate: 0,
-                    },
-                    prediction: {
-                        inputFeatures: inputs,
-                        outputValue: output.prediction,
-                        confidence: output.confidence
-                    }
-                })
-            });
+            // New Sentinel SDK Integration
+            Sentinel.logModelPrediction(
+                model.name,
+                model.version || 'v1.0.0',
+                {
+                    latencyMs: latency,
+                    throughputRps: 1,
+                    errorRate: 0,
+                    cpuUsage: 0.0, // Client-side, unknown
+                    memoryUsage: 0.0
+                },
+                {
+                    inputFeatures: inputs,
+                    outputValue: typeof output.prediction === 'object' ? JSON.stringify(output.prediction) : String(output.prediction),
+                    confidence: output.confidence
+                }
+            );
+            // Force flush for immediate feedback in UI
+            await Sentinel.flush();
+
         } catch (e) {
             console.error("Failed to send telemetry:", e);
         }
