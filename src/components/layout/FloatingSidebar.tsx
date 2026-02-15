@@ -12,7 +12,8 @@ import {
     FileText,
     LogOut,
     Menu,
-    ChevronRight
+    ChevronRight,
+    Activity
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { logout } from '@/lib/firebase/auth';
@@ -20,6 +21,7 @@ import { logout } from '@/lib/firebase/auth';
 const menuItems = [
     { icon: LayoutDashboard, label: "Overview", href: "/studio" },
     { icon: Cloud, label: "MLOps Deploy", href: "/studio/deploy" },
+    { icon: Activity, label: "Monitoring", href: "/sentinel" },
     { icon: BarChart3, label: "Reports", href: "/reports" },
     { icon: FileText, label: "Notebooks", href: "/notebooks" },
     { icon: Settings, label: "Settings", href: "/settings" },
