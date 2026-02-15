@@ -62,6 +62,7 @@ export default function DeploymentConfig() {
             });
 
             setDeploymentId(id);
+            // Triggering new build to resolve previous stale artifact error
         } catch (error) {
             console.error('Deployment error:', error);
         }
