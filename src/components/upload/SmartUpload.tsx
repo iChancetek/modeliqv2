@@ -137,18 +137,11 @@ export default function SmartUpload({ onAnalysisComplete }: SmartUploadProps) {
                 }
             });
         } else {
-            // Fallback for non-CSV (Mock)
-            setTimeout(() => {
-                clearInterval(interval);
-                setProgress(100);
-                setUploading(false);
-                if (onAnalysisComplete) {
-                    onAnalysisComplete({
-                        filename: selectedFile.name,
-                        insights: "Analysis complete. File type not fully supported for deep inspection yet."
-                    });
-                }
-            }, 2000);
+            // Non-CSV files are not supported for this demo
+            // Do nothing or show error - but DO NOT mock success
+            console.warn("Unsupported file type for client-side parsing");
+            setUploading(false);
+            clearInterval(interval);
         }
 
     }, [onAnalysisComplete]);

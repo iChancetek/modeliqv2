@@ -16,6 +16,7 @@ export interface DeploymentRequest {
     cloudProvider?: 'gcp' | 'aws' | 'azure';
     computeStrategy?: 'serverless' | 'kubernetes' | 'vm';
     hostingTarget: 'modeliq' | 'external';
+    metrics?: any;
 }
 
 export interface DeploymentStatus {
@@ -69,13 +70,11 @@ export class DeploymentOrchestrator {
                 logs: ['Initiating Model Validation Gate...', 'Agent: ValidatorAgent analyzing model metrics...']
             });
 
-            // Simulate fetching metrics from a model registry or training run
-            // In a real scenario, these come from the experiment tracker
-            const mockTrainingMetrics = {
-                accuracy: 0.92,
-                f1Score: 0.89,
-                latencyMs: 45,
-                biasScore: 0.01
+            // Fetch metrics from request or use default logic
+            const trainingMetrics = request.metrics || {
+                // Fallback only if absolutely necessary, but prefer real data
+                accuracy: 0.0,
+                latencyMs: 0
             };
 
             const validationResult = await this.validatorAgent.execute({
@@ -84,7 +83,7 @@ export class DeploymentOrchestrator {
                 status: 'pending',
                 logs: [],
                 payload: {
-                    metrics: mockTrainingMetrics,
+                    metrics: trainingMetrics,
                     acceptanceCriteria: {
                         accuracy: '> 0.90',
                         latencyMs: '< 50'
