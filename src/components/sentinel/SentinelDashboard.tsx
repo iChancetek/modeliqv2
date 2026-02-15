@@ -12,7 +12,6 @@ import { ResponsiveContainer, LineChart, Line, AreaChart, Area, XAxis, YAxis, To
 import { Activity, AlertTriangle, ShieldCheck, Database, Zap } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { DebugSimulationPanel } from './DebugSimulationPanel';
 
 export default function SentinelDashboard() {
     const [telemetryPoints, setTelemetryPoints] = useState<TelemetryPoint[]>([]);
@@ -264,8 +263,9 @@ export default function SentinelDashboard() {
                                     <ResponsiveContainer width="100%" height="100%">
                                         <AreaChart data={telemetryPoints.map((p, i) => ({
                                             timestamp: p.timestamp,
-                                            // Simulate visualization track
-                                            driftScore: (Math.sin(i * 0.1) + 1) * 0.05 + (drift?.hasDrift ? 0.2 : 0)
+                                            // Real Drift Score from telemetry or global drift state overlap
+                                            // If specific point has drift metric, use it. Otherwise use 0.
+                                            driftScore: drift?.hasDrift ? drift.driftScore : 0
                                         }))}>
                                             <defs>
                                                 <linearGradient id="colorDrift" x1="0" y1="0" x2="0" y2="1">
@@ -275,7 +275,7 @@ export default function SentinelDashboard() {
                                             </defs>
                                             <CartesianGrid strokeDasharray="3 3" stroke="#222" />
                                             <XAxis dataKey="timestamp" hide />
-                                            <YAxis stroke="#444" fontSize={10} domain={[0, 0.5]} />
+                                            <YAxis stroke="#444" fontSize={10} domain={[0, 1]} />
                                             <Tooltip
                                                 contentStyle={{ background: '#000', border: '1px solid #333', borderRadius: '8px' }}
                                                 labelFormatter={(ts) => new Date(ts).toLocaleTimeString()}
@@ -295,7 +295,7 @@ export default function SentinelDashboard() {
                             </Card>
                         </div>
 
-                        {/* Charts Row 2 - GenAI & Infra (Placeholder for now until simulation improves) */}
+                        {/* Charts Row 2 - GenAI & Infra */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Card className="bg-black/40 border-white/5">
                                 <CardHeader className="py-3">
@@ -345,11 +345,6 @@ export default function SentinelDashboard() {
                     </div>
                 </div>
             )}
-
-            {/* Developer Tools */}
-            <div className="opacity-50 hover:opacity-100 transition-opacity">
-                <DebugSimulationPanel />
-            </div>
         </div>
     );
 }

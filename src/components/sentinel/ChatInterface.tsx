@@ -13,7 +13,7 @@ interface Message {
 
 export function ChatInterface() {
     const [messages, setMessages] = useState<Message[]>([
-        { id: '1', role: 'assistant', content: 'I am Sentinel Copilot. Ask me about system health, anomalies, or root causes.', timestamp: Date.now() }
+        { id: '1', role: 'assistant', content: 'I am Sentinel Copilot. Connectivity is currently limited. Telemetry is being recorded.', timestamp: Date.now() }
     ]);
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -27,28 +27,18 @@ export function ChatInterface() {
         setIsLoading(true);
 
         try {
-            // Echo/Mock response until backend Agent is connected to this UI
-            // In full impl, this POSTs to an agent endpoint
+            // TODO: Connect to backend SentinelMonitorAgent
+            // For now, we report that the AI agent is not yet connected to this frontend interface.
 
-            // Simulation
             setTimeout(() => {
-                let reply = "I'm analyzing the telemetry...";
-                if (userMsg.content.toLowerCase().includes('latency')) {
-                    reply = "Latency spiked to 450ms at 14:02 UTC. This correlates with a deployment of model v2.1. Recommended action: Rollback.";
-                } else if (userMsg.content.toLowerCase().includes('drift')) {
-                    reply = "PSI score for 'age' feature is 0.25 (High Drift). The distribution has shifted significantly compared to training data.";
-                } else {
-                    reply = "System is currently healthy. No active incidents detected in the last hour.";
-                }
-
                 setMessages(prev => [...prev, {
                     id: (Date.now() + 1).toString(),
                     role: 'assistant',
-                    content: reply,
+                    content: "The Sentinel AI Agent is currently disconnected. Please configure the backend API to enable real-time analysis.",
                     timestamp: Date.now()
                 }]);
                 setIsLoading(false);
-            }, 1000);
+            }, 500);
 
         } catch (error) {
             console.error(error);
