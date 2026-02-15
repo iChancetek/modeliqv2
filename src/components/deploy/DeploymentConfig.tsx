@@ -57,7 +57,6 @@ export default function DeploymentConfig() {
                 framework: model.format === 'onnx' ? 'sklearn' : model.format as any,
                 cloudProvider: hostingTarget === 'external' ? provider as any : undefined,
                 computeStrategy: hostingTarget === 'external' ? compute as any : undefined,
-                computeStrategy: hostingTarget === 'external' ? compute as any : undefined,
                 hostingTarget: hostingTarget,
                 metrics: model.metrics
             });
