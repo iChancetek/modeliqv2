@@ -47,7 +47,7 @@ export default function SmartUpload({ onAnalysisComplete }: SmartUploadProps) {
                     setProgress(100);
                     setUploading(false);
 
-                    // Mock "Analysis" based on real data structure
+                    // Parse Analysis from Real Data
                     const columns = results.meta.fields || [];
                     const rowCount = results.data.length;
                     const preview = results.data.slice(0, 50);

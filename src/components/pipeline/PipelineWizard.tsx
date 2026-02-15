@@ -623,6 +623,12 @@ export default function PipelineWizard() {
                                             return;
                                         }
 
+                                        if (!targetCol) {
+                                            alert("Target column not selected. Please go back to Configuration.");
+                                            setLoading(false);
+                                            return;
+                                        }
+
                                         // 2. Write file to Pyodide FS
                                         pyodide.FS.writeFile("dataset.csv", csvData);
 
