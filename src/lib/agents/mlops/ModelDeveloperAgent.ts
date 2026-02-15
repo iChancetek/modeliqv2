@@ -20,10 +20,9 @@ export class ModelDeveloperAgent extends BaseAgent {
                 Data Profile: ${JSON.stringify(dataAnalysis)}
 
                 Output JSON:
-                - "algorithm": Selected algorithm name.
-                - "hyperparameters": Dictionary of initial params.
-                - "code": Complete Python script to train and save the model as 'model.pkl'.
-                - "justification": Why this algorithm was chosen.
+                - "recommended_models": List of { "name": "ModelName", "confidence": 0-1, "params": {} }. Rank top 3.
+                - "reasoning": Detailed explanation of the ranking.
+                - "code": Python training script template for the top model.
             `;
 
             const response = await this.think(prompt);
