@@ -1,5 +1,7 @@
 import { TelemetryPoint, AnomalyAlert } from '../types';
 
+// Force rebuild 2026-02-15
+
 /**
  * simple-statistics is a lightweight library, but we can implement basic stats manually
  * to avoid dependencies if preferred. For now, manual implementation.
