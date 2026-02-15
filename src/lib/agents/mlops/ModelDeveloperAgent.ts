@@ -11,13 +11,13 @@ export class ModelDeveloperAgent extends BaseAgent {
 
     async execute(task: AgentTask): Promise<any> {
         if (task.type === 'generate_training_code') {
-            const { problemDefinition, dataAnalysis } = task.payload;
+            const { problemDefinition, dataProfile } = task.payload;
 
             const prompt = `
                 Task: Generate Python training code for scikit-learn.
                 
                 Problem: ${JSON.stringify(problemDefinition)}
-                Data Profile: ${JSON.stringify(dataAnalysis)}
+                Data Profile: ${JSON.stringify(dataProfile)}
 
                 Output JSON:
                 - "recommended_models": List of { "name": "ModelName", "confidence": 0-1, "params": {} }. Rank top 3.

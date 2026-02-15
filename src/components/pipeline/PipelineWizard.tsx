@@ -126,11 +126,11 @@ export default function PipelineWizard() {
             setDataPreview(analysis.preview);
         }
         if (analysis.columns) {
-            setColumns(Object.keys(analysis.columns));
+            setColumns(analysis.columns);
 
             // Basic Auto-Detect Target
             const candidates = ['target', 'label', 'survived', 'class', 'outcome'];
-            const detected = Object.keys(analysis.columns).find(c => candidates.includes(c.toLowerCase()));
+            const detected = analysis.columns.find((c: string) => candidates.includes(c.toLowerCase()));
             if (detected) {
                 setTargetCol(detected);
                 setPipelineConfig(prev => ({ ...prev, target: detected }));
