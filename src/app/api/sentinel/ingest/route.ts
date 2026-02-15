@@ -6,6 +6,14 @@ export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
 
+        // Security: Validate API Key
+        const apiKey = req.headers.get('x-api-key');
+        const validKey = process.env.SENTINEL_INGEST_KEY || process.env.NEXT_PUBLIC_SENTINEL_INGEST_KEY;
+
+        if (!validKey || apiKey !== validKey) {
+            return NextResponse.json({ success: false, error: 'Unauthorized: Invalid API Key' }, { status: 401 });
+        }
+
         // Validation (Basic)
         if (!body.modelId || !body.metrics) {
             return NextResponse.json({ success: false, error: 'Invalid Telemetry Payload' }, { status: 400 });

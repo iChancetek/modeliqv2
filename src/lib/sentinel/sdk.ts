@@ -12,9 +12,12 @@ class SentinelSDK {
         const isClient = typeof window !== 'undefined';
         const baseUrl = isClient ? window.location.origin : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000');
         this.ingestionUrl = `${baseUrl}/api/sentinel/ingest`;
+        this.apiKey = process.env.NEXT_PUBLIC_SENTINEL_INGEST_KEY || ''; // Load key
 
         this.startAutoFlush();
     }
+
+    private apiKey: string; // Add property
 
     configure(options: { ingestionUrl?: string, flushIntervalMs?: number, maxBufferSize?: number }) {
         if (options.ingestionUrl) this.ingestionUrl = options.ingestionUrl;
@@ -124,7 +127,10 @@ class SentinelSDK {
         try {
             await fetch(this.ingestionUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': this.apiKey
+                },
                 body: JSON.stringify(point)
             });
         } catch (e) {
