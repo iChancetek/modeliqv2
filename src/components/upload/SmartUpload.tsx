@@ -52,12 +52,36 @@ export default function SmartUpload({ onAnalysisComplete }: SmartUploadProps) {
                     const rowCount = results.data.length;
                     const preview = results.data.slice(0, 50);
 
+                    // --- GENERATE CLIENT-SIDE DATA PROFILE ---
+                    const profile: any = {
+                        rows: rowCount,
+                        columns: {}
+                    };
+
+                    columns.forEach(col => {
+                        const values = results.data.map((r: any) => r[col]);
+                        const definedValues = values.filter((v: any) => v !== null && v !== undefined && v !== '');
+                        const numValues = definedValues.filter((v: any) => !isNaN(Number(v)));
+
+                        const isNumeric = numValues.length > definedValues.length * 0.9; // 90% numeric rule
+                        const uniqueCount = new Set(definedValues).size;
+                        const missingCount = rowCount - definedValues.length;
+
+                        profile.columns[col] = {
+                            type: isNumeric ? 'numeric' : 'categorical',
+                            missing: missingCount,
+                            unique: uniqueCount,
+                            example: definedValues[0]
+                        };
+                    });
+
                     const analysisResult = {
                         filename: selectedFile.name,
                         columns: columns,
                         rowCount: rowCount,
-                        data: results.data, // Include full data for client-side processing
+                        data: results.data,
                         preview: preview,
+                        profile: profile // Pass the generated profile
                     };
 
                     // --- HEURISTIC ANALYSIS ---
