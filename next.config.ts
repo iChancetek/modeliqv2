@@ -11,6 +11,15 @@ if (process.env.FIREBASE_WEBAPP_CONFIG) {
 }
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        source: '/dashboard',
+        destination: '/sentinel',
+        permanent: true,
+      },
+    ];
+  },
   output: "standalone",
   env: {
     // Inject Firebase config vars so they are properly inlined during build

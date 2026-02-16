@@ -12,6 +12,10 @@ env:
     value: projects/modeliqv2/secrets/OPENAI_API_KEY/versions/latest # Reference secret
   - variable: NEXT_PUBLIC_OPENAI_API_KEY
     value: projects/modeliqv2/secrets/OPENAI_API_KEY/versions/latest # Reference secret
+  - variable: SENTINEL_INGEST_KEY
+    value: sentinel_live_8f92a3b4c5d6e7f8
+  - variable: NEXT_PUBLIC_SENTINEL_INGEST_KEY
+    value: sentinel_live_8f92a3b4c5d6e7f8
 
 build:
   ignore:
