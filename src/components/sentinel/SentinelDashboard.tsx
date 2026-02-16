@@ -78,9 +78,9 @@ export default function SentinelDashboard() {
     }, [isListening]);
 
     // Derived Health Score
-    const healthScore: HealthScore = useMemo(() => {
+    const healthScore: HealthScore | null = useMemo(() => {
         if (telemetryPoints.length === 0) {
-            return { overall: 100, latencyScore: 100, accuracyScore: 100, driftScore: 100, costEfficiency: 100 };
+            return null; // Return null to indicate no data, instead of fake 100
         }
 
         const recentPoints = telemetryPoints.slice(-20);
@@ -179,7 +179,9 @@ export default function SentinelDashboard() {
                             <CardContent className="space-y-3 overflow-y-auto p-4 flex-1">
                                 {alerts.length === 0 && (
                                     <div className="text-xs text-muted-foreground text-center py-10 italic">
-                                        System operating within normal parameters.
+                                        {telemetryPoints.length > 0
+                                            ? "System operating within normal parameters."
+                                            : "Waiting for telemetry stream..."}
                                     </div>
                                 )}
                                 {alerts.map(alert => (
@@ -220,35 +222,41 @@ export default function SentinelDashboard() {
                                     </div>
                                 </CardHeader>
                                 <CardContent className="h-[250px]">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={telemetryPoints.map(p => ({
-                                            timestamp: p.timestamp,
-                                            latencyMs: p.metrics.latencyMs
-                                        }))}>
-                                            <defs>
-                                                <linearGradient id="colorLat" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                                                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                                                </linearGradient>
-                                            </defs>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#222" />
-                                            <XAxis dataKey="timestamp" hide />
-                                            <YAxis stroke="#444" fontSize={10} />
-                                            <Tooltip
-                                                contentStyle={{ background: '#000', border: '1px solid #333', borderRadius: '8px' }}
-                                                labelFormatter={(ts) => new Date(ts).toLocaleTimeString()}
-                                            />
-                                            <Area
-                                                type="monotone"
-                                                dataKey="latencyMs"
-                                                stroke="#8b5cf6"
-                                                strokeWidth={2}
-                                                fillOpacity={1}
-                                                fill="url(#colorLat)"
-                                                isAnimationActive={false}
-                                            />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
+                                    {telemetryPoints.length > 0 ? (
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <AreaChart data={telemetryPoints.map(p => ({
+                                                timestamp: p.timestamp,
+                                                latencyMs: p.metrics.latencyMs
+                                            }))}>
+                                                <defs>
+                                                    <linearGradient id="colorLat" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                                                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#222" />
+                                                <XAxis dataKey="timestamp" hide />
+                                                <YAxis stroke="#444" fontSize={10} />
+                                                <Tooltip
+                                                    contentStyle={{ background: '#000', border: '1px solid #333', borderRadius: '8px' }}
+                                                    labelFormatter={(ts) => new Date(ts).toLocaleTimeString()}
+                                                />
+                                                <Area
+                                                    type="monotone"
+                                                    dataKey="latencyMs"
+                                                    stroke="#8b5cf6"
+                                                    strokeWidth={2}
+                                                    fillOpacity={1}
+                                                    fill="url(#colorLat)"
+                                                    isAnimationActive={false}
+                                                />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    ) : (
+                                        <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
+                                            No latency data recorded
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
 
@@ -260,37 +268,43 @@ export default function SentinelDashboard() {
                                     </div>
                                 </CardHeader>
                                 <CardContent className="h-[250px]">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={telemetryPoints.map((p, i) => ({
-                                            timestamp: p.timestamp,
-                                            // Real Drift Score from telemetry or global drift state overlap
-                                            // If specific point has drift metric, use it. Otherwise use 0.
-                                            driftScore: drift?.hasDrift ? drift.driftScore : 0
-                                        }))}>
-                                            <defs>
-                                                <linearGradient id="colorDrift" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-                                                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                                                </linearGradient>
-                                            </defs>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#222" />
-                                            <XAxis dataKey="timestamp" hide />
-                                            <YAxis stroke="#444" fontSize={10} domain={[0, 1]} />
-                                            <Tooltip
-                                                contentStyle={{ background: '#000', border: '1px solid #333', borderRadius: '8px' }}
-                                                labelFormatter={(ts) => new Date(ts).toLocaleTimeString()}
-                                            />
-                                            <Area
-                                                type="monotone"
-                                                dataKey="driftScore"
-                                                stroke="#ef4444"
-                                                strokeWidth={2}
-                                                fillOpacity={1}
-                                                fill="url(#colorDrift)"
-                                                isAnimationActive={false}
-                                            />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
+                                    {telemetryPoints.length > 0 ? (
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <AreaChart data={telemetryPoints.map((p, i) => ({
+                                                timestamp: p.timestamp,
+                                                // Real Drift Score from telemetry or global drift state overlap
+                                                // If specific point has drift metric, use it. Otherwise use 0.
+                                                driftScore: drift?.hasDrift ? drift.driftScore : 0
+                                            }))}>
+                                                <defs>
+                                                    <linearGradient id="colorDrift" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                                                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#222" />
+                                                <XAxis dataKey="timestamp" hide />
+                                                <YAxis stroke="#444" fontSize={10} domain={[0, 1]} />
+                                                <Tooltip
+                                                    contentStyle={{ background: '#000', border: '1px solid #333', borderRadius: '8px' }}
+                                                    labelFormatter={(ts) => new Date(ts).toLocaleTimeString()}
+                                                />
+                                                <Area
+                                                    type="monotone"
+                                                    dataKey="driftScore"
+                                                    stroke="#ef4444"
+                                                    strokeWidth={2}
+                                                    fillOpacity={1}
+                                                    fill="url(#colorDrift)"
+                                                    isAnimationActive={false}
+                                                />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    ) : (
+                                        <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
+                                            No drift data recorded
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
                         </div>
@@ -302,21 +316,27 @@ export default function SentinelDashboard() {
                                     <CardTitle className="text-xs font-mono text-gray-400">ERROR RATE (%)</CardTitle>
                                 </CardHeader>
                                 <CardContent className="h-[200px]">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <LineChart data={telemetryPoints.map(p => ({
-                                            timestamp: p.timestamp,
-                                            errorRate: p.metrics.errorRate * 100
-                                        }))}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#222" />
-                                            <XAxis dataKey="timestamp" hide />
-                                            <YAxis stroke="#444" fontSize={10} />
-                                            <Tooltip
-                                                contentStyle={{ background: '#000', border: '1px solid #333' }}
-                                                labelFormatter={(ts) => new Date(ts).toLocaleTimeString()}
-                                            />
-                                            <Line type="step" dataKey="errorRate" stroke="#f59e0b" strokeWidth={2} dot={false} />
-                                        </LineChart>
-                                    </ResponsiveContainer>
+                                    {telemetryPoints.length > 0 ? (
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <LineChart data={telemetryPoints.map(p => ({
+                                                timestamp: p.timestamp,
+                                                errorRate: p.metrics.errorRate * 100
+                                            }))}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#222" />
+                                                <XAxis dataKey="timestamp" hide />
+                                                <YAxis stroke="#444" fontSize={10} />
+                                                <Tooltip
+                                                    contentStyle={{ background: '#000', border: '1px solid #333' }}
+                                                    labelFormatter={(ts) => new Date(ts).toLocaleTimeString()}
+                                                />
+                                                <Line type="step" dataKey="errorRate" stroke="#f59e0b" strokeWidth={2} dot={false} />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    ) : (
+                                        <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
+                                            No error data
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
                             <Card className="bg-black/40 border-white/5">
@@ -324,21 +344,27 @@ export default function SentinelDashboard() {
                                     <CardTitle className="text-xs font-mono text-gray-400">SYSTEM LOAD (CPU)</CardTitle>
                                 </CardHeader>
                                 <CardContent className="h-[200px]">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <LineChart data={telemetryPoints.map(p => ({
-                                            timestamp: p.timestamp,
-                                            load: (p.metrics.cpuUsage || 0) * 100
-                                        }))}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#222" />
-                                            <XAxis dataKey="timestamp" hide />
-                                            <YAxis stroke="#444" fontSize={10} domain={[0, 100]} />
-                                            <Tooltip
-                                                contentStyle={{ background: '#000', border: '1px solid #333' }}
-                                                labelFormatter={(ts) => new Date(ts).toLocaleTimeString()}
-                                            />
-                                            <Line type="monotone" dataKey="load" stroke="#3b82f6" strokeWidth={2} dot={false} />
-                                        </LineChart>
-                                    </ResponsiveContainer>
+                                    {telemetryPoints.length > 0 ? (
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <LineChart data={telemetryPoints.map(p => ({
+                                                timestamp: p.timestamp,
+                                                load: (p.metrics.cpuUsage || 0) * 100
+                                            }))}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#222" />
+                                                <XAxis dataKey="timestamp" hide />
+                                                <YAxis stroke="#444" fontSize={10} domain={[0, 100]} />
+                                                <Tooltip
+                                                    contentStyle={{ background: '#000', border: '1px solid #333' }}
+                                                    labelFormatter={(ts) => new Date(ts).toLocaleTimeString()}
+                                                />
+                                                <Line type="monotone" dataKey="load" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    ) : (
+                                        <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
+                                            No cpu data
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
                         </div>

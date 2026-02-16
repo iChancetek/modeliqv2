@@ -1,13 +1,27 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { HealthScore } from '@/lib/sentinel/types';
-import { Activity, Zap, ShieldCheck, DollarSign } from 'lucide-react';
+import { Activity, Zap, ShieldCheck, DollarSign, Loader2 } from 'lucide-react';
 
 interface Props {
-    score: HealthScore;
+    score: HealthScore | null;
 }
 
 export function HealthScoreCard({ score }: Props) {
+    if (!score) {
+        return (
+            <Card className="bg-black/40 border-white/5 h-[300px] flex flex-col items-center justify-center text-center p-6">
+                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                    <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-300">Waiting for Data</h3>
+                <p className="text-sm text-gray-500 mt-2 max-w-[200px]">
+                    Sentinel is listening for telemetry events...
+                </p>
+            </Card>
+        );
+    }
+
     const getColor = (val: number) => val >= 90 ? 'text-green-400' : val >= 70 ? 'text-yellow-400' : 'text-red-400';
     const getBg = (val: number) => val >= 90 ? 'bg-green-400/10' : val >= 70 ? 'bg-yellow-400/10' : 'bg-red-400/10';
 
