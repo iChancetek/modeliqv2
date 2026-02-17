@@ -9,9 +9,9 @@ env:
   - variable: NEXT_PUBLIC_API_URL
     value: https://modeliqv2--modeliqv2.us-east4.hosted.app
   - variable: OPENAI_API_KEY
-    value: projects/modeliqv2/secrets/OPENAI_API_KEY/versions/latest # Reference secret
+    secret: OPENAI_API_KEY
   - variable: NEXT_PUBLIC_OPENAI_API_KEY
-    value: projects/modeliqv2/secrets/OPENAI_API_KEY/versions/latest # Reference secret
+    secret: OPENAI_API_KEY
   - variable: SENTINEL_INGEST_KEY
     value: sentinel_live_8f92a3b4c5d6e7f8
   - variable: NEXT_PUBLIC_SENTINEL_INGEST_KEY
